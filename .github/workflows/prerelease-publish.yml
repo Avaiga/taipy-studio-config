@@ -64,6 +64,10 @@ jobs:
       - name: Install webviews node_modules
         working-directory: ./webviews
         run: npm ci --include=dev
+      
+      - name: Build webviews
+        working-directory: ./webviews
+        run: npm run prod
 
       - name: Install node_modules
         run: npm ci --include=dev
