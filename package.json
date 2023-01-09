@@ -4,13 +4,13 @@
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Avaiga",
   "version": "0.2.0",
-  "homepage": "https://github.com/Avaiga/taipy-studio.git",
+  "homepage": "https://github.com/Avaiga/taipy-studio-config.git",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Avaiga/taipy-studio.git"
+    "url": "https://github.com/Avaiga/taipy-studio-config.git"
   },
   "bugs": {
-    "url": "https://github.com/Avaiga/taipy-studio/issues"
+    "url": "https://github.com/Avaiga/taipy-studio-config/issues"
   },
   "icon": "assets/taipy-logo.png",
   "engines": {
@@ -325,7 +325,10 @@
     "prod": "concurrently -n vscode,webviews \"webpack --mode production\" \"cd webviews && webpack --mode production\"",
     "watch": "concurrently -n vscode,webviews \"webpack watch --mode development\" \"cd webviews && webpack watch --mode development\"",
     "generate-l10n-bundle": "vscode-l10n-dev export --outDir ./l10n ./src ./webviews/src",
-    "generate-l10n-pseudo": "vscode-l10n-dev generate-pseudo -o ./l10n/ ./l10n/bundle.l10n.json ./package.nls.json"
+    "generate-l10n-pseudo": "vscode-l10n-dev generate-pseudo -o ./l10n/ ./l10n/bundle.l10n.json ./package.nls.json",
+    "vscode:prepublish": "npm run package",
+    "deploy": "vsce publish",
+    "prerelease-deploy": "vsce publish --pre-release"
   },
   "devDependencies": {
     "@types/glob": "^8.0.0",
@@ -336,7 +339,7 @@
     "@typescript-eslint/parser": "^5.12.1",
     "@vscode/l10n-dev": "^0.0.22",
     "@vscode/test-electron": "^2.1.2",
-    "@vscode/vsce": "^2.15.0",
+    "@vscode/vsce": "^2.16.0",
     "concurrently": "^7.4.0",
     "copy-webpack-plugin": "^11.0.0",
     "dotenv-webpack": "^8.0.1",
