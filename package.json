@@ -326,7 +326,6 @@
     "watch": "concurrently -n vscode,webviews \"webpack watch --mode development\" \"cd webviews && webpack watch --mode development\"",
     "generate-l10n-bundle": "vscode-l10n-dev export --outDir ./l10n ./src ./webviews/src",
     "generate-l10n-pseudo": "vscode-l10n-dev generate-pseudo -o ./l10n/ ./l10n/bundle.l10n.json ./package.nls.json",
-    "vscode:prepublish": "npm run package",
     "deploy": "vsce publish",
     "prerelease-deploy": "vsce publish --pre-release"
   },
