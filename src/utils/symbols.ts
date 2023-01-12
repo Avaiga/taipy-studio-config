@@ -151,3 +151,5 @@ export const getSectionName = (name: string, withSection?: boolean, sectionName 
   name = getUnsuffixedName(name);
   return withSection ? name + ":" + sectionName : name;
 };
+
+export const getPythonSuffix = (isFunction: boolean) => isFunction ? "function" : "class";

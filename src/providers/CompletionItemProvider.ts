@@ -35,7 +35,7 @@ import { getChildType } from "../../shared/childtype";
 import { Context } from "../context";
 import { calculatePythonSymbols, getEnum, getEnumProps, getProperties, isClass, isFunction } from "../schema/validation";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
-import { getDescendantProperties, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
+import { getDescendantProperties, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getOriginalUri } from "./PerpectiveContentProvider";
 import { getMainPythonUri } from "../utils/utils";
 
@@ -176,14 +176,14 @@ const getPythonSymbols = async (isFunction: boolean, lineText: string, position:
       }
     });
   });
-  const cis = symbolsWithModule.map((v) => getCompletionItemInString(v, lineText, position));
+  const cis = symbolsWithModule.map((v) => getCompletionItemInString(v, lineText, position, undefined, getPythonSuffix(isFunction)));
   const modules = Object.values(modulesByUri);
   modules.push(l10n.t("New module name"));
   cis.push(
     getCompletionItemInString(isFunction ? l10n.t("create a new function") : l10n.t("create a new class"), lineText, position, [
       modules.length === 1 ? modules[0] : modules,
       isFunction ? l10n.t("function name") : l10n.t("class name"),
-    ])
+    ], getPythonSuffix(isFunction))
   );
   return cis;
 };
@@ -246,7 +246,7 @@ const getCompletionItemInArray = (value: string, line: string, position: Positio
 };
 
 const stringRe = /(\w+)?\s*(=)?\s*(")?(\w*)(")?/; // storage_type = "toto": gr1 storage_type | gr2 = | gr3 " | gr4 toto | gr5 "
-const getCompletionItemInString = (value: string, line: string, position: Position, placeHolders?: [string[] | string, string]) => {
+const getCompletionItemInString = (value: string, line: string, position: Position, placeHolders?: [string[] | string, string], suffix?: string) => {
   const ci = new CompletionItem(value);
   const matches = line.match(listRe);
   const matchPos = getPosFromMatches(matches, line);
@@ -254,28 +254,30 @@ const getCompletionItemInString = (value: string, line: string, position: Positi
   let startPos = 0;
   let endPos = line.length - 1;
   const si = new SnippetString();
+  suffix = suffix ? `:${suffix}` : "";
   if (!matches[2]) {
     startPos = matchPos[1] + matches[1].length;
-    val = ' = "' + value + '"';
+    val = ` = "${value}${suffix}"`;
     si.appendText(' = "');
     appendPlaceHolders(si, placeHolders);
-    si.appendText('"');
+    si.appendText(`${suffix}"`);
   } else {
     if (!matches[3]) {
       startPos = matchPos[2] + matches[2].length;
-      val = ' "' + value + '"';
+      val = ` "${value}${suffix}"`;
       si.appendText(' "');
       appendPlaceHolders(si, placeHolders);
-      si.appendText('"');
+      si.appendText(`${suffix}"`);
     } else {
       startPos = matchPos[3] + matches[3].length;
       if (!matches[5]) {
-        val = value + '"';
+        val = `${value}${suffix}"`;
         appendPlaceHolders(si, placeHolders);
-        si.appendText('"');
+        si.appendText(`${suffix}"`);
       } else {
-        val = value;
+        val = `${value}${suffix}`;
         appendPlaceHolders(si, placeHolders);
+        suffix && si.appendText(suffix);
         endPos = matchPos[5];
       }
     }

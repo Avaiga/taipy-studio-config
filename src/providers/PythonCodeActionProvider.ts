@@ -27,6 +27,7 @@ import {
   workspace,
   WorkspaceEdit,
 } from "vscode";
+import { getPythonSuffix } from "../utils/symbols";
 
 export class PythonCodeActionProvider implements CodeActionProvider {
   private static readonly providedCodeActionKinds = [CodeActionKind.QuickFix];
@@ -59,7 +60,7 @@ export class PythonCodeActionProvider implements CodeActionProvider {
           ? code.target
           : Uri.joinPath(workspace.workspaceFolders[0].uri, ...parts, pythonFile === "__main__" ? mainFile : `${pythonFile}.py`);
         const codeAction = new CodeAction(
-          l10n.t("Create Python {0} '{1}' in {2}", isFunction ? "function" : "class", pythonSymbol, workspace.asRelativePath(pythonUri)),
+          l10n.t("Create Python {0} '{1}' in {2}", getPythonSuffix(isFunction), pythonSymbol, workspace.asRelativePath(pythonUri)),
           CodeActionKind.QuickFix
         );
         codeAction.diagnostics = [diagnostic];
