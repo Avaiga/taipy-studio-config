@@ -27,6 +27,7 @@ import {
 
 import { Context } from "../context";
 import { getPythonReferences } from "../schema/validation";
+import { getUnsuffixedName } from "../utils/symbols";
 import { getMainPythonUri } from "../utils/utils";
 
 export class PythonLinkProvider implements DocumentLinkProvider<DocumentLink> {
@@ -49,7 +50,7 @@ export class PythonLinkProvider implements DocumentLinkProvider<DocumentLink> {
           nameSymbol.children
             .filter((propSymbol) => pythonReferences[typeSymbol.name][propSymbol.name] !== undefined)
             .forEach((propSymbol) => {
-              const pythonSymbol = document.getText(propSymbol.range).slice(1, -1);
+              const pythonSymbol = getUnsuffixedName(document.getText(propSymbol.range).slice(1, -1));
               if (pythonSymbol) {
                 const parts = pythonSymbol.split(".");
                 if (parts.length > 1) {

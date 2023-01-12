@@ -15,7 +15,7 @@ import { commands, Diagnostic, DiagnosticSeverity, DocumentSymbol, l10n, languag
 import { ErrorObject } from "ajv";
 
 import { getOriginalUri } from "../providers/PerpectiveContentProvider";
-import { EXTRACT_STRINGS_RE, getDescendantProperties, getSymbol, getUnsuffixedName } from "./symbols";
+import { EXTRACT_STRINGS_RE, getDescendantProperties, getPythonSuffix, getSymbol, getUnsuffixedName } from "./symbols";
 import { getChildType } from "../../shared/childtype";
 import { DataNode, Pipeline, Task } from "../../shared/names";
 import { getPythonReferences } from "../schema/validation";
@@ -89,7 +89,7 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
         nameSymbol.children
           .filter((propSymbol) => pythonReferences[typeSymbol.name][propSymbol.name] !== undefined)
           .forEach((propSymbol) => {
-            const pythonSymbol = doc.getText(propSymbol.range).slice(1, -1);
+            const pythonSymbol = getUnsuffixedName(doc.getText(propSymbol.range).slice(1, -1));
             if (pythonSymbol) {
               const parts = pythonSymbol.split(".");
               if (parts.length < 2) {
@@ -127,7 +127,7 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
           diagnostics.push({
             severity: DiagnosticSeverity.Error,
             range: propSymbol.range,
-            message: l10n.t("Cannot find file for Python {0}: '{1}'.", pythonSymbol2TomlSymbols[ps].isFunction ? "function" : "class", ps),
+            message: l10n.t("Cannot find file for Python {0}: '{1}'.", getPythonSuffix(pythonSymbol2TomlSymbols[ps].isFunction), ps),
             source: "Python reference checker",
           })
         );
@@ -164,11 +164,11 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
           diagnostics.push({
             severity: DiagnosticSeverity.Error,
             range: propSymbol.range,
-            message: l10n.t("Cannot find Python {0}: '{1}'.", pythonSymbol2TomlSymbols[ps].isFunction ? "function" : "class", ps),
+            message: l10n.t("Cannot find Python {0}: '{1}'.", getPythonSuffix(pythonSymbol2TomlSymbols[ps].isFunction), ps),
             source: "python reference checker",
             code: {
               target: pythonSymbol2TomlSymbols[ps].uri.with({
-                query: `taipy-config=${pythonSymbol2TomlSymbols[ps].isFunction ? "function" : "class"}&name=${ps}`,
+                query: `taipy-config=${getPythonSuffix(pythonSymbol2TomlSymbols[ps].isFunction)}&name=${ps}`,
               }),
               value: workspace.asRelativePath(pythonSymbol2TomlSymbols[ps].uri),
             },
