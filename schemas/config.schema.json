@@ -292,7 +292,7 @@
             "taipy_function": true
           },
           "skippable": {
-            "description": "A boolean value. True if the task can be skipped if the inputs have been updated since last run.",
+            "description": "A boolean value as a string: one of [False:bool, True:bool].",
             "type": "string",
             "enum": [
               "False:bool",
