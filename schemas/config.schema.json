@@ -42,15 +42,6 @@
             ],
             "default": "pickle"
           },
-          "cacheable": {
-            "description": "A boolean value as a string: one of [False:bool, True:bool]",
-            "type": "string",
-            "enum": [
-              "False:bool",
-              "True:bool"
-            ],
-            "default": "False:bool"
-          },
           "default_path": {
             "description": "storage_type: pickle, csv, excel, json, parquet specific.",
             "type": "string"
@@ -296,9 +287,18 @@
             "uniqueItems": true
           },
           "function": {
-            "description": "Some description",
+            "description": "The function of the task.",
             "type": "string",
             "taipy_function": true
+          },
+          "skippable": {
+            "description": "A boolean value. True if the task can be skipped if the inputs have been updated since last run.",
+            "type": "string",
+            "enum": [
+              "False:bool",
+              "True:bool"
+            ],
+            "default": "False:bool"
           }
         }
       }
