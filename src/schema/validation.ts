@@ -26,8 +26,8 @@ let validationFunction: ValidateFunction<JsonMap>;
 export const getValidationFunction = async () => {
   if (!validationFunction) {
     const schema = await getValidationSchema();
-    const ajv = new Ajv({ strictTypes: false, allErrors: true, allowUnionTypes: true });
-    validationFunction = ajv.compile<JsonMap>(schema);
+    const ajv = new Ajv({ strictTypes: false, allErrors: true, allowUnionTypes: true, keywords: ["taipy_function", "taipy_class"] });
+    validationFunction = await ajv.compile<JsonMap>(schema);
   }
   return validationFunction;
 };
