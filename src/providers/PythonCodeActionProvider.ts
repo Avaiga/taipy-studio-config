@@ -27,7 +27,7 @@ import {
   workspace,
   WorkspaceEdit,
 } from "vscode";
-import { getPythonSuffix } from "../utils/symbols";
+import { getPythonSuffix, getUnsuffixedName } from "../utils/symbols";
 
 export class PythonCodeActionProvider implements CodeActionProvider {
   private static readonly providedCodeActionKinds = [CodeActionKind.QuickFix];
@@ -50,7 +50,7 @@ export class PythonCodeActionProvider implements CodeActionProvider {
       .map((diagnostic) => {
         const code = diagnostic.code as { target: Uri; value: string };
         const isFunction = code.target.query.split("&")[0] === "taipy-config=function";
-        const pythonName = document.getText(diagnostic.range).slice(1, -1);
+        const pythonName = getUnsuffixedName(document.getText(diagnostic.range).slice(1, -1));
         const parts = pythonName.split(".");
         const pythonSymbol = parts.at(-1);
         parts.pop(); // ignore symbol name
