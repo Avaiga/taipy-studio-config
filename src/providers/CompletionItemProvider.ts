@@ -170,7 +170,7 @@ const getPythonSymbols = async (isFunction: boolean, lineText: string, position:
     return pv;
   }, {} as Record<string, string>);
   symbolsByUri.forEach((su) => {
-    su.symbols.forEach((symbol) => {
+    Array.isArray(su.symbols) && su.symbols.forEach((symbol) => {
       if ((isFunction && symbol.kind === SymbolKind.Function) || (!isFunction && symbol.kind === SymbolKind.Class)) {
         symbolsWithModule.push(`${modulesByUri[su.uri.path]}.${symbol.name}`);
       }
@@ -180,10 +180,13 @@ const getPythonSymbols = async (isFunction: boolean, lineText: string, position:
   const modules = Object.values(modulesByUri);
   modules.push(l10n.t("New module name"));
   cis.push(
-    getCompletionItemInString(isFunction ? l10n.t("create a new function") : l10n.t("create a new class"), lineText, position, [
-      modules.length === 1 ? modules[0] : modules,
-      isFunction ? l10n.t("function name") : l10n.t("class name"),
-    ], getPythonSuffix(isFunction))
+    getCompletionItemInString(
+      isFunction ? l10n.t("Create a new function") : l10n.t("Create a new class"),
+      lineText,
+      position,
+      [modules.length === 1 ? modules[0] : modules, isFunction ? l10n.t("function name") : l10n.t("class name")],
+      getPythonSuffix(isFunction)
+    )
   );
   return cis;
 };
@@ -300,7 +303,7 @@ const appendPlaceHolders = (si: SnippetString, placeHolders?: [string[] | string
       } else {
         si.appendPlaceholder(ph);
       }
-  });
+    });
 };
 
 const getPosFromMatches = (matches: string[], line: string) => {
