@@ -11,6 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
+import { Diagnostic } from "vscode";
 import { DisplayModel } from "./diagram";
 
 export const NoDetailsId = "NoDetails";
@@ -23,7 +24,10 @@ export interface DataNodeDetailsProps {
   nodeType: string;
   nodeName: string;
   node: Record<string, string | string[]>;
+  diagnostics?: Record<string, WebDiag>;
 }
+
+export type WebDiag = {message?: string; severity?: number; link?: boolean; uri: string};
 
 export const ConfigEditorId = "ConfigEditor";
 
