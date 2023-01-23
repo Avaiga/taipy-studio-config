@@ -239,7 +239,7 @@ export class Context {
     this.configDetailsView.setEmptyContent();
   }
 
-  private async selectConfigNode(nodeType: string, name: string, configNode: object, uri: Uri, reveal = true): Promise<void> {
+  private async selectConfigNode(nodeType: string, name: string, configNode: object, uri: Uri, reveal = true, fromInEditor = true): Promise<void> {
     let updateCache = false;
     if (reveal || this.selectionCache.lastView === nodeType) {
       this.configDetailsView.setConfigNodeContent(nodeType, name, configNode, uri);
@@ -255,7 +255,7 @@ export class Context {
     if (updateCache) {
       this.vsContext.workspaceState.update(Context.cacheName, this.selectionCache);
     }
-    if (reveal) {
+    if (reveal && fromInEditor) {
       this.revealConfigNodeInEditors(uri, nodeType, name);
     }
   }
@@ -270,7 +270,7 @@ export class Context {
         const item = this.treeProviders[providerIndex].getItem(name);
         if (item) {
           this.treeViews[providerIndex].reveal(item, { select: true });
-          this.selectConfigNode(nodeType, name, item.getNode(), docUri, false);
+          this.selectConfigNode(nodeType, name, item.getNode(), docUri, true, false);
         }
       }
     }
