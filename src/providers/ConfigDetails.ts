@@ -25,20 +25,32 @@ import {
   WorkspaceEdit,
   TextDocument,
   l10n,
-  SymbolKind,
-  Position,
+  languages,
+  commands,
+  DocumentLink,
+  QuickPickItemKind,
 } from "vscode";
 
-import { getCspScriptSrc, getDefaultConfig, getNonce, joinPaths } from "../utils/utils";
-import { DataNodeDetailsId, NoDetailsId, webviewsLibraryDir, webviewsLibraryName, containerId, DataNodeDetailsProps, NoDetailsProps } from "../../shared/views";
+import { getCspScriptSrc, getDefaultConfig, getNonce, getPositionFragment, joinPaths } from "../utils/utils";
+import {
+  DataNodeDetailsId,
+  NoDetailsId,
+  webviewsLibraryDir,
+  webviewsLibraryName,
+  containerId,
+  DataNodeDetailsProps,
+  NoDetailsProps,
+  WebDiag,
+} from "../../shared/views";
 import { Action, EditProperty, Refresh } from "../../shared/commands";
 import { ViewMessage } from "../../shared/messages";
 import { Context } from "../context";
 import { getOriginalUri, isUriEqual } from "./PerpectiveContentProvider";
-import { getEnum, getEnumProps, getProperties } from "../schema/validation";
-import { getDescendantProperties, getNodeFromSymbol, getSectionName, getSymbol, getUnsuffixedName } from "../utils/symbols";
+import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunction, isClass } from "../schema/validation";
+import { getDescendantProperties, getNodeFromSymbol, getPythonSuffix, getSectionName, getSymbol, getUnsuffixedName } from "../utils/symbols";
 import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
+import { getCreateFunctionOrClassLabel, getModulesAndSymbols } from "../utils/pythonSymbols";
 
 export class ConfigDetailsView implements WebviewViewProvider {
   private _view: WebviewView;
@@ -63,10 +75,41 @@ export class ConfigDetailsView implements WebviewViewProvider {
     this.configUri = getOriginalUri(uri);
     this.nodeType = nodeType;
     this.nodeName = name;
-    this._view?.webview.postMessage({
-      viewId: DataNodeDetailsId,
-      props: { nodeType, nodeName: name, node } as DataNodeDetailsProps,
-    } as ViewMessage);
+    this.getNodeDiagnosticsAndLinks(node).then((diags) => {
+      this._view?.webview.postMessage({
+        viewId: DataNodeDetailsId,
+        props: { nodeType, nodeName: name, node, diagnostics: Object.keys(diags).length ? diags : undefined } as DataNodeDetailsProps,
+      } as ViewMessage);
+    });
+  }
+
+  private async getNodeDiagnosticsAndLinks(node: any) {
+    const diags = languages.getDiagnostics(this.configUri);
+    const links = (await commands.executeCommand("vscode.executeLinkProvider", this.configUri)) as DocumentLink[];
+    if (diags.length || links.length) {
+      const symbols = this.taipyContext.getSymbols(this.configUri.toString());
+      return Object.keys(node).reduce((obj, key) => {
+        const symbol = getSymbol(symbols, this.nodeType, this.nodeName, key);
+        if (symbol) {
+          const diag = diags.find((d) => !!d.range.intersection(symbol.range));
+          if (diag) {
+            obj[key] = {
+              message: diag.message,
+              severity: diag.severity,
+              uri: this.configUri.with({ fragment: getPositionFragment(diag.range.start) }).toString(),
+            };
+          }
+          const link = links.find((l) => !!l.range.intersection(symbol.range));
+          if (link) {
+            obj[key] = obj[key] || { uri: "" };
+            obj[key].uri = link.target?.toString();
+            obj[key].link = true;
+          }
+        }
+        return obj;
+      }, {} as Record<string, WebDiag>);
+    }
+    return {};
   }
 
   //called when a view first becomes visible
@@ -132,7 +175,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
     if (insert) {
       const nameSymbol = getSymbol(symbols, nodeType, nodeName);
       propertyRange = nameSymbol.range;
-      const currentProps = nameSymbol.children.map(s => s.name.toLowerCase());
+      const currentProps = nameSymbol.children.map((s) => s.name.toLowerCase());
       const properties = (await getProperties(nodeType)).filter((p) => !currentProps.includes(p.toLowerCase()));
       propertyName = await window.showQuickPick(properties, { canPickMany: false, title: l10n.t("Select property for {0}.", nodeType) });
       if (!propertyName) {
@@ -147,7 +190,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       const childType = getChildType(nodeType);
       const values = ((propertyValue || []) as string[]).map((v) => getUnsuffixedName(v.toLowerCase()));
       const childNames = getSymbol(symbols, childType).children.map(
-        s => ({ label: getSectionName(s.name), picked: values.includes(getUnsuffixedName(s.name.toLowerCase())) } as QuickPickItem)
+        (s) => ({ label: getSectionName(s.name), picked: values.includes(getUnsuffixedName(s.name.toLowerCase())) } as QuickPickItem)
       );
       if (!childNames.length) {
         window.showInformationMessage(l10n.t("No {0} entity in toml.", childType));
@@ -162,18 +205,81 @@ export class ConfigDetailsView implements WebviewViewProvider {
       }
       newVal = res.map((q) => q.label);
     } else {
-      const enumProps = await getEnumProps();
-      const enumProp = enumProps.find((p) => p.toLowerCase() === propertyName?.toLowerCase());
-      const res = enumProp
-        ? await window.showQuickPick(
-            getEnum(enumProp).map((v) => ({ label: v, picked: v === propertyValue })),
-            { canPickMany: false, title: l10n.t("Select value for {0}.{1}", nodeType, propertyName) }
-          )
-        : await window.showInputBox({ title: l10n.t("Enter value for {0}.{1}", nodeType, propertyName), value: propertyValue as string });
-      if (res === undefined) {
-        return;
+      await calculatePythonSymbols();
+      const isFn = isFunction(propertyName);
+      if (isFn || isClass(propertyName)) {
+        const [symbolsWithModule, modulesByUri] = await getModulesAndSymbols(isFn);
+        const currentModule = propertyValue && (propertyValue as string).split(".", 2)[0];
+        let resMod: string;
+        let resUri: string;
+        if (Object.keys(modulesByUri).length) {
+          const items = Object.entries(modulesByUri).map(
+            ([uri, module]) => ({ label: module, picked: module === currentModule, uri: uri } as QuickPickItem & { uri?: string; create?: boolean })
+          );
+          items.push({ label: "", kind: QuickPickItemKind.Separator });
+          items.push({ label: l10n.t("New module name"), create: true });
+          const item = await window.showQuickPick(items, { canPickMany: false, title: l10n.t("Select Python module for {0}.{1}", nodeType, propertyName) });
+          if (!item) {
+            return;
+          }
+          if (!item.create) {
+            resMod = item.label;
+            resUri = item.uri;
+          }
+        }
+        if (!resMod) {
+          resMod = await window.showInputBox({ title: l10n.t("Enter Python module for {0}.{1}", nodeType, propertyName), value: currentModule });
+          if (resMod) {
+            resMod = resMod.trim();
+            resUri = Object.keys(modulesByUri).find((u) => modulesByUri[u] === resMod);
+          }
+        }
+        if (!resMod) {
+          return;
+        }
+        const symbols = symbolsWithModule.filter((s) => s.split(".", 2)[0] === resMod);
+        let resFunc: string;
+        if (symbols.length) {
+          const currentfunc = propertyValue && propertyValue.includes(".") && `${resMod}.${(propertyValue as string).split(".", 2)[1]}`;
+          const items = symbols.map((fn) => ({ label: fn, picked: fn === currentfunc } as QuickPickItem & { create?: boolean }));
+          items.push({ label: "", kind: QuickPickItemKind.Separator });
+          items.push({ label: getCreateFunctionOrClassLabel(isFn), create: true });
+          const item = await window.showQuickPick(items, {
+            canPickMany: false,
+            title: l10n.t("Select Python {0} for {1}.{2}", getPythonSuffix(isFn), nodeType, propertyName),
+          });
+          if (!item) {
+            return;
+          }
+          if (!item.create) {
+            resFunc = item.label;
+          }
+        }
+        if (!resFunc) {
+          resFunc = await window.showInputBox({
+            title: l10n.t("Enter Python {0} name for {1}.{2}", getPythonSuffix(isFn), nodeType, propertyName),
+            value: `${resMod}.${getPythonSuffix(isFn)}`,
+            valueSelection: [resMod.length + 1, resMod.length + 1 + getPythonSuffix(isFn).length],
+          });
+        }
+        if (!resFunc) {
+          return;
+        }
+        newVal = `${resFunc}:${getPythonSuffix(isFn)}`;
+      } else {
+        const enumProps = await getEnumProps();
+        const enumProp = enumProps.find((p) => p.toLowerCase() === propertyName?.toLowerCase());
+        const res = enumProp
+          ? await window.showQuickPick(
+              getEnum(enumProp).map((v) => ({ label: v, picked: v === propertyValue })),
+              { canPickMany: false, title: l10n.t("Select value for {0}.{1}", nodeType, propertyName) }
+            )
+          : await window.showInputBox({ title: l10n.t("Enter value for {0}.{1}", nodeType, propertyName), value: propertyValue as string });
+        if (res === undefined) {
+          return;
+        }
+        newVal = typeof res === "string" ? res : res.label;
       }
-      newVal = typeof res === "string" ? res : res.label;
     }
     if (insert) {
       propertyRange = propertyRange.with({ end: propertyRange.end.with({ character: 0 }) });
@@ -185,7 +291,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
         : TextEdit.replace(propertyRange, stringify.value(newVal).trim()),
     ]);
     return workspace.applyEdit(we);
-}
+  }
 
   private getHtmlForWebview(webview: Webview) {
     // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.

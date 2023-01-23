@@ -22,13 +22,13 @@ import {
   DocumentSymbol,
   workspace,
   commands,
-  Position,
 } from "vscode";
 
 import { Context } from "../context";
 import { getPythonReferences } from "../schema/validation";
+import { getMainPythonUri } from "../utils/pythonSymbols";
 import { getUnsuffixedName } from "../utils/symbols";
-import { getMainPythonUri } from "../utils/utils";
+import { getPositionFragment } from "../utils/utils";
 
 export class PythonLinkProvider implements DocumentLinkProvider<DocumentLink> {
   static register(vsContext: ExtensionContext, context: Context): void {
@@ -108,5 +108,3 @@ export class PythonLinkProvider implements DocumentLinkProvider<DocumentLink> {
     return links;
   }
 }
-
-const getPositionFragment = (pos: Position) => `L${pos.line}C${pos.character}`;

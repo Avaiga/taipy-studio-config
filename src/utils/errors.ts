@@ -19,7 +19,7 @@ import { EXTRACT_STRINGS_RE, getDescendantProperties, getPythonSuffix, getSymbol
 import { getChildType } from "../../shared/childtype";
 import { DataNode, Pipeline, Task } from "../../shared/names";
 import { getPythonReferences } from "../schema/validation";
-import { getMainPythonUri } from "./utils";
+import { getMainPythonUri } from "./pythonSymbols";
 
 const diagnoticsCollection = languages.createDiagnosticCollection("taipy-config-symbol");
 

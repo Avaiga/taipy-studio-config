@@ -15,11 +15,18 @@ import { Fragment, MouseEvent, useCallback } from "react";
 import * as l10n from "@vscode/l10n";
 
 import { postEditProperty } from "../utils/messaging";
-import { DataNodeDetailsProps } from "../../../shared/views";
+import { DataNodeDetailsProps, WebDiag } from "../../../shared/views";
 
 const getAsString = (val: string | string[]) => (Array.isArray(val) ? (val as string[]).join(", ") : typeof val === "string" ? val : JSON.stringify(val));
 
-const DataNodePanel = ({ nodeType, nodeName, node }: DataNodeDetailsProps) => {
+const getDiagContext = (diag: WebDiag) => JSON.stringify({
+    webviewSection: "taipy.property",
+    baseUri: diag.uri
+  });
+
+const getDiagStyle = (diag: WebDiag) => (diag.severity !== undefined ? {textDecorationLine: "underline", textDecorationStyle: "wavy",  textDecorationColor: diag.severity === 0 ? "var(--vscode-editorError-foreground)" : diag.severity === 1 ? "var(--vscode-editorWarning-foreground)" : "var(--vscode-editorInfo-foreground)"} : {textDecorationLine: "underline"}) as React.CSSProperties;
+
+const DataNodePanel = ({ nodeType, nodeName, node, diagnostics }: DataNodeDetailsProps) => {
 
   const editPropertyValue = useCallback((evt: MouseEvent<HTMLDivElement>) => {
     const propertyName = evt.currentTarget.dataset.propertyName;
@@ -32,15 +39,16 @@ const DataNodePanel = ({ nodeType, nodeName, node }: DataNodeDetailsProps) => {
         {nodeType}: {nodeName}
       </h2>
       <div className="property-grid">
-        {Object.entries(node).map(([k, n]) => (
-          <Fragment key={k}>
-            <div>{k}</div>
-            <div>{getAsString(n)}</div>
+        {Object.entries(node).map(([k, n]) => {
+          const valProps = diagnostics && diagnostics[k] ? {title: diagnostics[k].message, 'data-vscode-context': getDiagContext(diagnostics[k]), style:getDiagStyle(diagnostics[k])} : {};
+          return <Fragment key={k}>
+            <div {...valProps}>{k}</div>
+            <div {...valProps}>{getAsString(n)}</div>
             <div className="panel-button icon" data-property-name={k} title={l10n.t("edit")} onClick={editPropertyValue}>
               <i className="codicon codicon-edit"></i>
             </div>
-          </Fragment>
-        ))}
+          </Fragment>;
+        })}
         <div>{l10n.t("New Property")}</div>
         <div></div>
         <div className="panel-button icon" title={l10n.t("edit")} onClick={editPropertyValue}>

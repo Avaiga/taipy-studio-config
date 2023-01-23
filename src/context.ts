@@ -93,6 +93,7 @@ export class Context {
     commands.registerCommand(revealConfigNodeCmd, this.revealConfigNodeInEditors, this);
     commands.registerCommand("taipy.perspective.show", this.showPerspective, this);
     commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this);
+    commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this);
     // Perspective Provider
     vsContext.subscriptions.push(workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider()));
     // Create Tree Views
@@ -297,6 +298,10 @@ export class Context {
 
   private showPerspectiveFromDiagram(item: { baseUri: string; perspective: string }) {
     commands.executeCommand("vscode.openWith", getPerspectiveUri(Uri.parse(item.baseUri, true), item.perspective), ConfigEditorProvider.viewType);
+  }
+
+  private showPropertyLink(item: { baseUri: string; }) {
+    commands.executeCommand("vscode.open", Uri.parse(item.baseUri, true));
   }
 
   getSymbols(uri: string) {
