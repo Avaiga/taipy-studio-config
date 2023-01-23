@@ -113,6 +113,7 @@ export const getLinkId = (link: LinkModel) =>
 export const getNodeId = (node: DefaultNodeModel) => `${node.getType()}.${node.getOptions().name}`;
 
 const fireNodeSelected = (nodeType: string, name?: string) => name && postActionMessage(nodeType, name, Select);
+
 export const cachePositions = (model: DiagramModel) => {
   const pos = getModelNodes(model).reduce((ps, node) => {
     const pNode = node as DefaultNodeModel;
@@ -157,9 +158,11 @@ const debouncedPostPoss = debounce(postPoss, 500);
 
 const nodeListener = {
   selectionChanged: (e: BaseEvent) => {
-    const node = (e as BaseEntityEvent<DefaultNodeModel>).entity;
-    if (node.getType() && node.getOptions().name) {
-      fireNodeSelected(node.getType(), node.getOptions().name);
+    if ((e as any).isSelected) {
+      const node = (e as BaseEntityEvent<DefaultNodeModel>).entity;
+      if (node.getType() && node.getOptions().name) {
+        fireNodeSelected(node.getType(), node.getOptions().name);
+      }
     }
   },
   positionChanged: (e: BaseEvent) => debouncedPostPoss(getNodeAndLinksPositions, (e as BaseEntityEvent<DefaultNodeModel>).entity),
@@ -250,7 +253,7 @@ export const showNode = (engine: DiagramEngine, message: EditorAddNodeMessage) =
 const isInLine = (pnt: PointModel, startLine: PointModel, endLine: PointModel) => {
   const L2 =
     (endLine.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) + (endLine.getY() - startLine.getY()) * (endLine.getY() - startLine.getY());
-  if (L2 == 0) {
+  if (L2 === 0) {
     return false;
   }
   const r = ((pnt.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) + (pnt.getY() - startLine.getY()) * (endLine.getY() - startLine.getY())) / L2;
