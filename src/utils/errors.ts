@@ -15,7 +15,7 @@ import { commands, Diagnostic, DiagnosticSeverity, DocumentSymbol, l10n, languag
 import { ErrorObject } from "ajv";
 
 import { getOriginalUri } from "../providers/PerpectiveContentProvider";
-import { EXTRACT_STRINGS_RE, getDescendantProperties, getPythonSuffix, getSymbol, getUnsuffixedName } from "./symbols";
+import { getArrayFromText, getDescendantProperties, getPythonSuffix, getSymbol, getUnsuffixedName } from "./symbols";
 import { getChildType } from "../../shared/childtype";
 import { DataNode, Pipeline, Task } from "../../shared/names";
 import { getPythonReferences } from "../schema/validation";
@@ -41,25 +41,22 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
               const startOffset = doc.offsetAt(linksSymbol.range.start);
               const value = linksSymbol && doc.getText(linksSymbol.range);
               value &&
-                value
-                  .split(EXTRACT_STRINGS_RE)
-                  .filter((n) => n)
-                  .forEach((name: string) => {
-                    const childName = getUnsuffixedName(name);
-                    nodeIds.add(`${childType}.${childName}`);
-                    const sType = getSymbol(symbols, childType);
-                    if (sType && sType.children.find((s) => s.name === childName)) {
-                      // all good
-                      return;
-                    }
-                    const startPos = doc.positionAt(startOffset + value.indexOf(name));
-                    diagnostics.push({
-                      severity: DiagnosticSeverity.Warning,
-                      range: new Range(startPos, startPos.with({ character: startPos.character + name.length })),
-                      message: l10n.t("Element '{0}.{1}' does not exist.", childType, name),
-                      source: "Consistency checker",
-                    });
+                getArrayFromText(value).forEach((name: string) => {
+                  const childName = getUnsuffixedName(name.trim());
+                  nodeIds.add(`${childType}.${childName}`);
+                  const sType = getSymbol(symbols, childType);
+                  if (sType && sType.children.find((s) => s.name === childName)) {
+                    // all good
+                    return;
+                  }
+                  const startPos = doc.positionAt(startOffset + value.indexOf(name));
+                  diagnostics.push({
+                    severity: DiagnosticSeverity.Warning,
+                    range: new Range(startPos, startPos.with({ character: startPos.character + name.length })),
+                    message: l10n.t("Element '{0}.{1}' does not exist.", childType, name),
+                    source: "Consistency checker",
                   });
+                });
             });
           });
     });

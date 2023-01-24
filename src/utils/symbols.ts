@@ -51,7 +51,7 @@ export const getSymbol = (symbols: DocumentSymbol[], ...names: string[]): Docume
   if (!names || names.length === 0) {
     return symbols[0];
   }
-  return names.reduce((o, n) => o?.children?.find(s => s.name === n), {children: symbols} as DocumentSymbol);
+  return names.reduce((o, n) => o?.children?.find((s) => s.name === n), { children: symbols } as DocumentSymbol);
 };
 
 const supportedNodeTypes = {
@@ -66,22 +66,28 @@ const ignoredNodeNames = {
 
 export const getNodeFromSymbol = (doc: TextDocument, symbol: DocumentSymbol) => {
   const node = {};
-  symbol.children.forEach(s => node[s.name] = s.kind === SymbolKind.Array ? getSymbolArrayValue(doc, s) : getSymbolValue(doc, s));
+  symbol.children.forEach((s) => (node[s.name] = s.kind === SymbolKind.Array ? getSymbolArrayValue(doc, s) : getSymbolValue(doc, s)));
   return node;
 };
 
-export const EXTRACT_STRINGS_RE = /[^\w\:\-\.]+/;
+const EXTRACT_STRINGS_RE = /['"]\s*,\s*["']/;
+
+export const getArrayFromText = (text: string) => {
+  if (text.trim()) {
+    return text.trim().slice(1, -1).trim().slice(1, -1).split(EXTRACT_STRINGS_RE);
+  }
+  return [];
+};
 
 export const getSymbolArrayValue = (doc: TextDocument, symbol: DocumentSymbol, prop?: string) => getSymbolValue(doc, symbol, prop) as string[];
 
 const getSymbolValue = <T>(doc: TextDocument, symbol: DocumentSymbol, prop?: string) => {
-  const propSymbol = prop ? symbol.children.find(s => s.name === prop) : symbol;
+  const propSymbol = prop ? symbol.children.find((s) => s.name === prop) : symbol;
   if (propSymbol) {
     if (propSymbol.kind === SymbolKind.Array) {
-      return doc.getText(propSymbol.range).split(EXTRACT_STRINGS_RE).filter(n => n);
+      return getArrayFromText(doc.getText(propSymbol.range));
     } else if (propSymbol.kind === SymbolKind.String) {
-      const parts = doc.getText(propSymbol.range).split(EXTRACT_STRINGS_RE).filter(n => n);
-      return parts.length ? parts[0] : "";
+      return doc.getText(propSymbol.range).trim().slice(1, -1);
     } else {
       return doc.getText(propSymbol.range);
     }
@@ -115,7 +121,8 @@ export const toDisplayModel = (doc: TextDocument, symbols: DocumentSymbol[], pos
         if (inputProp) {
           getSymbolArrayValue(doc, nameSymbol, inputProp).forEach((childName: string) =>
             links.push(getLink([childType, getUnsuffixedName(childName), typeSymbol.name, nameSymbol.name] as LinkName, positions))
-          );}
+          );
+        }
       }
     });
   });
@@ -138,7 +145,7 @@ export const getDefaultContent = (nodeType: string, nodeName: string) => ({ [nod
 
 export const getUnsuffixedName = (name: string) => {
   const p = name.lastIndexOf(":");
-  if (p === -1){
+  if (p === -1) {
     return name;
   }
   return name.substring(0, p);
@@ -152,4 +159,4 @@ export const getSectionName = (name: string, withSection?: boolean, sectionName 
   return withSection ? name + ":" + sectionName : name;
 };
 
-export const getPythonSuffix = (isFunction: boolean) => isFunction ? "function" : "class";
+export const getPythonSuffix = (isFunction: boolean) => (isFunction ? "function" : "class");
