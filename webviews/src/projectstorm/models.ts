@@ -13,7 +13,7 @@
 
 import { DefaultPortModel, DefaultPortModelOptions, DiagramModel, LinkModel, LinkModelGenerics, PortModelAlignment } from "@projectstorm/react-diagrams";
 
-import { InPortName, onLinkRemove, OutPortName } from "../utils/diagram";
+import { IN_PORT_NAME, onLinkRemove, OUT_PORT_NAME } from "../utils/diagram";
 import { getChildType } from "../../../shared/childtype";
 import { DataNode, Task } from "../../../shared/names";
 
@@ -21,11 +21,11 @@ export class TaipyDiagramModel extends DiagramModel {}
 
 export class TaipyPortModel extends DefaultPortModel {
   static createInPort() {
-    return new TaipyPortModel({ in: true, name: InPortName, label: InPortName, alignment: PortModelAlignment.LEFT });
+    return new TaipyPortModel({ in: true, name: IN_PORT_NAME, label: IN_PORT_NAME, alignment: PortModelAlignment.LEFT });
   }
 
   static createOutPort() {
-    return new TaipyPortModel({ in: false, name: OutPortName, label: OutPortName, alignment: PortModelAlignment.RIGHT });
+    return new TaipyPortModel({ in: false, name: OUT_PORT_NAME, label: OUT_PORT_NAME, alignment: PortModelAlignment.RIGHT });
   }
 
   constructor(options: DefaultPortModelOptions) {

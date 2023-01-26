@@ -29,12 +29,13 @@ import {
   commands,
   DocumentLink,
   QuickPickItemKind,
+  Position,
 } from "vscode";
 
 import { getCspScriptSrc, getDefaultConfig, getNonce, getPositionFragment, joinPaths } from "../utils/utils";
 import {
-  DataNodeDetailsId,
-  NoDetailsId,
+  DATA_NODE_DETAILS_ID,
+  NO_DETAILS_ID,
   webviewsLibraryDir,
   webviewsLibraryName,
   containerId,
@@ -42,15 +43,15 @@ import {
   NoDetailsProps,
   WebDiag,
 } from "../../shared/views";
-import { Action, EditProperty, Refresh } from "../../shared/commands";
+import { ACTION, EDIT_NODE_NAME, EDIT_PROPERTY, REFRESH } from "../../shared/commands";
 import { ViewMessage } from "../../shared/messages";
 import { Context } from "../context";
 import { getOriginalUri, isUriEqual } from "./PerpectiveContentProvider";
 import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunction, isClass } from "../schema/validation";
-import { getDescendantProperties, getNodeFromSymbol, getPythonSuffix, getSectionName, getSymbol, getUnsuffixedName } from "../utils/symbols";
+import { getDescendantProperties, getNodeFromSymbol, getParentType, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
-import { getCreateFunctionOrClassLabel, getModulesAndSymbols } from "../utils/pythonSymbols";
+import { checkPythonIdentifierValidity, getCreateFunctionOrClassLabel, getModulesAndSymbols, getNodeNameValidationFunction } from "../utils/pythonSymbols";
 
 export class ConfigDetailsView implements WebviewViewProvider {
   private _view: WebviewView;
@@ -66,7 +67,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
 
   setEmptyContent(): void {
     this._view?.webview.postMessage({
-      viewId: NoDetailsId,
+      viewId: NO_DETAILS_ID,
       props: { message: l10n.t("No selected element.") } as NoDetailsProps,
     } as ViewMessage);
   }
@@ -77,7 +78,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
     this.nodeName = name;
     this.getNodeDiagnosticsAndLinks(node).then((diags) => {
       this._view?.webview.postMessage({
-        viewId: DataNodeDetailsId,
+        viewId: DATA_NODE_DETAILS_ID,
         props: { nodeType, nodeName: name, node, diagnostics: Object.keys(diags).length ? diags : undefined } as DataNodeDetailsProps,
       } as ViewMessage);
     });
@@ -127,14 +128,17 @@ export class ConfigDetailsView implements WebviewViewProvider {
           case "SHOW_WARNING_LOG":
             window.showWarningMessage(e.data.message);
             break;
-          case Refresh:
+          case REFRESH:
             this.setEmptyContent();
             break;
-          case Action:
+          case ACTION:
             window.showErrorMessage("Action from webview", e.id, e.msg);
             break;
-          case EditProperty:
+          case EDIT_PROPERTY:
             this.editProperty(e.nodeType, e.nodeName, e.propertyName, e.propertyValue);
+            break;
+          case EDIT_NODE_NAME:
+            this.editNodeName(e.nodeType, e.nodeName);
             break;
           default:
             break;
@@ -159,7 +163,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       const nameSymbol = getSymbol(symbols, this.nodeType, this.nodeName);
       const node = getNodeFromSymbol(textDocument, nameSymbol);
       this._view?.webview.postMessage({
-        viewId: DataNodeDetailsId,
+        viewId: DATA_NODE_DETAILS_ID,
         props: { nodeType: this.nodeType, nodeName: this.nodeName, node: node } as DataNodeDetailsProps,
       } as ViewMessage);
     }
@@ -258,14 +262,15 @@ export class ConfigDetailsView implements WebviewViewProvider {
         if (!resFunc) {
           resFunc = await window.showInputBox({
             title: l10n.t("Enter Python {0} name for {1}.{2}", getPythonSuffix(isFn), nodeType, propertyName),
-            value: `${resMod}.${getPythonSuffix(isFn)}`,
-            valueSelection: [resMod.length + 1, resMod.length + 1 + getPythonSuffix(isFn).length],
+            value: getPythonSuffix(isFn),
+            valueSelection: [0, getPythonSuffix(isFn).length],
+            validateInput: checkPythonIdentifierValidity,
           });
         }
         if (!resFunc) {
           return;
         }
-        newVal = `${resFunc}:${getPythonSuffix(isFn)}`;
+        newVal = `${resMod}.${resFunc}:${getPythonSuffix(isFn)}`;
       } else {
         const enumProps = await getEnumProps();
         const enumProp = enumProps.find((p) => p.toLowerCase() === propertyName?.toLowerCase());
@@ -290,6 +295,68 @@ export class ConfigDetailsView implements WebviewViewProvider {
         ? TextEdit.insert(propertyRange.end, `${propertyName} = ${stringify.value(newVal).trim()}\n`)
         : TextEdit.replace(propertyRange, stringify.value(newVal).trim()),
     ]);
+    return workspace.applyEdit(we);
+  }
+
+  private async editNodeName(nodeType: string, nodeName: string) {
+    return this.doRenameNode(this.configUri, nodeType, nodeName);
+  }
+
+  async doRenameNode(uri: Uri, nodeType: string, nodeName: string) {
+    const symbols = this.taipyContext.getSymbols(uri.toString());
+    if (!symbols) {
+      return false;
+    }
+    const newName = await window.showInputBox({
+      title: l10n.t("Enter new name for {0}", nodeType),
+      value: nodeName,
+      validateInput: getNodeNameValidationFunction(getSymbol(symbols, nodeType), nodeName),
+    });
+    if (newName === undefined || newName === nodeName) {
+      return false;
+    }
+    const blockRange = getSymbol(symbols, nodeType, nodeName).range;
+    const doc = await this.taipyContext.getDocFromUri(uri);
+    const text = doc.getText(blockRange);
+    const base = text.indexOf(nodeType + ".");
+    if (base === -1) {
+      return false;
+    }
+    const startPos = blockRange.start.translate(undefined, base + nodeType.length + 1);
+    const nameRange = blockRange.with({start: startPos, end: startPos.translate(undefined, nodeName.length)});
+
+    if (this.nodeType === nodeType && this.nodeName === nodeName) {
+      this.nodeName = newName;
+    }
+    this.taipyContext.updateSelectionCache(nodeType, nodeName, newName);
+    const tes = [TextEdit.replace(nameRange, newName)];
+
+    // Apply change to references
+    const parentType = getParentType(nodeType);
+    if (parentType) {
+      const descProps = getDescendantProperties(parentType).filter(p => p);
+      if (descProps.length) {
+        const oldNameRegexp = new RegExp(`(['"]${getUnsuffixedName(nodeName)}['":])`);
+        getSymbol(symbols, parentType).children.forEach(parentSymbol => {
+          descProps.forEach(property => {
+            const propSymbol = getSymbol(parentSymbol.children, property);
+            if (getSymbolArrayValue(doc, propSymbol).some(val => nodeName === getUnsuffixedName(val))) {
+              for (let i = propSymbol.range.start.line; i <= propSymbol.range.end.line; i++) {
+                const line = doc.lineAt(i).text;
+                const res = oldNameRegexp.exec(line);
+                if (res) {
+                  const start = line.indexOf(res[1]) + 1;
+                  tes.push(TextEdit.replace(new Range(new Position(i, start), new Position(i, start + res[1].length - 2)), newName));
+                }
+              }
+            }
+          });
+        });
+      }
+    }
+
+    const we = new WorkspaceEdit();
+    we.set(uri, tes);
     return workspace.applyEdit(we);
   }
 

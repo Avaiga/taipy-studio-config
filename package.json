@@ -3,7 +3,7 @@
   "displayName": "Taipy Studio Configuration Builder",
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Taipy",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "homepage": "https://github.com/Avaiga/taipy-studio-config.git",
   "repository": {
     "type": "git",
@@ -62,6 +62,11 @@
         "command": "taipy.config.deleteNode",
         "title": "%taipy.config.commands.taipy.config.deleteNode%",
         "icon": "$(delete)"
+      },
+      {
+        "command": "taipy.config.renameNode",
+        "title": "%taipy.config.commands.taipy.config.renameNode%",
+        "icon": "$(rename)"
       },
       {
         "command": "taipy.config.datanode.create",
@@ -134,17 +139,19 @@
         {
           "id": "taipy-config-pipelines",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-pipelines%",
-          "when": "taipy:numberOfConfigFiles>0"
+          "when": "taipy:numberOfConfigFiles>0",
+          "visibility": "collapsed"
         },
         {
           "id": "taipy-config-scenarios",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-scenarios%",
-          "when": "taipy:numberOfConfigFiles>0"
+          "when": "taipy:numberOfConfigFiles>0",
+          "visibility": "collapsed"
         },
         {
           "id": "taipy-config-auth",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-auth%",
-          "visibility": "collapsed"
+          "visibility": "hidden"
         },
         {
           "type": "webview",
@@ -215,6 +222,10 @@
         },
         {
           "command": "taipy.config.deleteNode",
+          "when": "view =~ /taipy-config-(datanodes|tasks|pipelines|scenarios)/"
+        },
+        {
+          "command": "taipy.config.renameNode",
           "when": "view =~ /taipy-config-(datanodes|tasks|pipelines|scenarios)/"
         },
         {

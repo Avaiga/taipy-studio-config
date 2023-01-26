@@ -69,6 +69,7 @@ export abstract class ConfigItem extends TreeItem {
   abstract getNodeType();
   constructor(name: string, private readonly node: JsonMap) {
     super(name, TreeItemCollapsibleState.None);
+    this.iconPath = "-";
     this.contextValue = name === "default" ? name : this.getNodeType();
     this.tooltip = name;
   }
@@ -150,7 +151,7 @@ export class ConfigNodesProvider<T extends ConfigItem = ConfigItem> implements T
   }
 
   getItem(nodeName: string) {
-    return this.configItems.find((n) => n.label === nodeName);
+    return nodeName && this.configItems.find((n) => n.label === nodeName);
   }
 
   getNodeType() {

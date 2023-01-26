@@ -11,6 +11,7 @@
     "taipy.config.commands.taipy.perspective.showFromDiagram": "Taipy: Show View",
     "taipy.config.commands.taipy.diagram.addNode": "Taipy: Add/Show node in active View",
     "taipy.config.commands.taipy.config.deleteNode": "Taipy: Delete node from configuration",
+    "taipy.config.commands.taipy.config.renameNode": "Taipy: Rename node",
     "taipy.config.customEditors.taipy-config-editor": "Taipy Config Editor",
     "taipy.config.icon.theme.label": "Taipy product icon set",
     "taipy.config.viewsContainers.activitybar.taipy-config-panel": "Taipy Configs",

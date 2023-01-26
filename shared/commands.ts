@@ -11,19 +11,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-export const Action = "action";
-export const Select = "select";
-export const Refresh = "refresh";
-export const SetPositions = "setPositions";
-export const Relayout = "relayout";
-export const CreateNode = "createNode";
-export const RemoveNode = "removeNode";
-export const CreateLink = "createLink";
-export const DeleteLink = "deleteLink";
-export const GetNodeName = "getNodeName";
-export const SetExtraEntities = "setExtraEntities";
-export const UpdateExtraEntities = "updateExtraEntities";
-export const RemoveExtraEntities = "removeExtraEntities";
-export const SaveDocument = "saveDocument";
-export const SaveAsPngUrl = "saveAsPngUrl";
-export const EditProperty = "editProperty";
+export const ACTION = "action";
+export const SELECT = "select";
+export const REFRESH = "refresh";
+export const SET_POSITIONS = "setPositions";
+export const RELAYOUT = "relayout";
+export const CREATE_NODE = "createNode";
+export const REMOVE_NODE = "removeNode";
+export const CREATE_LINK = "createLink";
+export const DELETE_LINK = "deleteLink";
+export const GET_NODE_NAME = "getNodeName";
+export const SET_EXTRA_ENTITIES = "setExtraEntities";
+export const UPDATE_EXTRA_ENTITIES = "updateExtraEntities";
+export const REMOVE_EXTRA_ENTITIES = "removeExtraEntities";
+export const SAVE_DOCUMENT = "saveDocument";
+export const SAVE_AS_PNG_URL = "saveAsPngUrl";
+export const EDIT_PROPERTY = "editProperty";
+export const EDIT_NODE_NAME = "editNodeName";

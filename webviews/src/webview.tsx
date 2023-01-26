@@ -15,7 +15,7 @@ import { useEffect, lazy, useState, Suspense } from "react";
 import * as l10n from "@vscode/l10n";
 
 import { ViewMessage } from "../../shared/messages";
-import { ConfigEditorId, ConfigEditorProps, DataNodeDetailsId, DataNodeDetailsProps, NoDetailsId, NoDetailsProps } from "../../shared/views";
+import { CONFIG_EDITOR_ID, ConfigEditorProps, DATA_NODE_DETAILS_ID, DataNodeDetailsProps, NO_DETAILS_ID, NoDetailsProps } from "../../shared/views";
 import { postRefreshMessage } from "./utils/messaging";
 
 const NoDetails = lazy(() => import(/* webpackChunkName: "NoDetails" */ "./components/NoDetails"));
@@ -44,19 +44,19 @@ const WebView = () => {
 
   if (message) {
     switch (message.viewId) {
-      case NoDetailsId:
+      case NO_DETAILS_ID:
         return (
           <Suspense fallback={<Loading />}>
             <NoDetails {...(message.props as NoDetailsProps)} />
           </Suspense>
         );
-      case DataNodeDetailsId:
+      case DATA_NODE_DETAILS_ID:
         return (
           <Suspense fallback={<Loading />}>
             <DataNodeDetails {...(message.props as DataNodeDetailsProps)} />
           </Suspense>
         );
-      case ConfigEditorId:
+      case CONFIG_EDITOR_ID:
         return (
           <Suspense fallback={<Loading />}>
             <Editor {...(message.props as ConfigEditorProps)} />

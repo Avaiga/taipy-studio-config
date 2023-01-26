@@ -43,7 +43,7 @@ import {
   postPositionsMessage,
   postUpdateExtraEntities,
 } from "./messaging";
-import { Select } from "../../../shared/commands";
+import { SELECT } from "../../../shared/commands";
 import { TaipyDiagramModel, TaipyPortModel } from "../projectstorm/models";
 import { TaipyNodeFactory, TaipyPortFactory } from "../projectstorm/factories";
 import { nodeTypes } from "./config";
@@ -89,12 +89,12 @@ export const getNodeByName = (model: TaipyDiagramModel, paths: string[]) => {
   const [nodeType, ...parts] = paths;
   const name = parts.join(".");
   return name
-    ? (getModelNodes(model).find((n) => n.getType() == nodeType && (n.getOptions() as DefaultNodeModelOptions).name == name) as DefaultNodeModel)
+    ? (getModelNodes(model).find((n) => n.getType() == nodeType && (n.getOptions() as DefaultNodeModelOptions).name === name) as DefaultNodeModel)
     : undefined;
 };
 
-export const InPortName = "In";
-export const OutPortName = "Out";
+export const IN_PORT_NAME = "In";
+export const OUT_PORT_NAME = "Out";
 
 const nodePorts: Record<string, [boolean, boolean]> = {
   [DataNode]: [true, true],
@@ -112,7 +112,7 @@ export const getLinkId = (link: LinkModel) =>
   `LINK.${getNodeId(link.getSourcePort().getNode() as DefaultNodeModel)}.${getNodeId(link.getTargetPort().getNode() as DefaultNodeModel)}`;
 export const getNodeId = (node: DefaultNodeModel) => `${node.getType()}.${node.getOptions().name}`;
 
-const fireNodeSelected = (nodeType: string, name?: string) => name && postActionMessage(nodeType, name, Select);
+const fireNodeSelected = (nodeType: string, name?: string) => name && postActionMessage(nodeType, name, SELECT);
 
 export const cachePositions = (model: DiagramModel) => {
   const pos = getModelNodes(model).reduce((ps, node) => {
@@ -182,7 +182,7 @@ const linkListener = {
   },
 } as LinkModelListener;
 
-const DoNotPostRemove = "doNotPostRemove";
+const DO_NOT_POST_REMOVE = "doNotPostRemove";
 
 export const diagramListener = {
   nodesUpdated: (e: BaseEvent) => {
@@ -192,7 +192,7 @@ export const diagramListener = {
       postNodeCreation(node.getType(), node.getOptions().name || "");
     } else {
       //mark the link as not post to
-      Object.values(node.getPorts()).forEach((p) => Object.values(p.getLinks()).forEach((l) => (l.getOptions().extras = DoNotPostRemove)));
+      Object.values(node.getPorts()).forEach((p) => Object.values(p.getLinks()).forEach((l) => (l.getOptions().extras = DO_NOT_POST_REMOVE)));
       postNodeRemoval(node.getType(), node.getOptions().name || "");
     }
   },
@@ -205,7 +205,7 @@ export const diagramListener = {
 } as DiagramListener;
 
 export const onLinkRemove = (link: LinkModel<LinkModelGenerics>) => {
-  if (link.getOptions().extras == DoNotPostRemove) {
+  if (link.getOptions().extras === DO_NOT_POST_REMOVE) {
     console.log("onLinkRemove blocked by node removal");
     return;
   }
@@ -234,7 +234,7 @@ export const createLink = (outPort: DefaultPortModel, inPort: DefaultPortModel) 
 
 export const showNode = (engine: DiagramEngine, message: EditorAddNodeMessage) => {
   const model = engine.getModel();
-  let node = getModelNodes(model).find((n) => n.getType() == message.nodeType && (n as DefaultNodeModel).getOptions().name == message.nodeName);
+  let node = getModelNodes(model).find((n) => n.getType() === message.nodeType && (n as DefaultNodeModel).getOptions().name === message.nodeName);
   if (node) {
     const canvas = engine.getCanvas();
     const ratio = model.getZoomLevel() / 100;
@@ -276,7 +276,7 @@ export const relayoutDiagram = (engine: DiagramEngine, dagreEngine: DagreEngine)
   //  engine.getLinkFactories().getFactory<PathFindingLinkFactory>(PathFindingLinkFactory.NAME).calculateRoutingMatrix();
   getModelLinks(model).forEach((l) => {
     const points = l.getPoints();
-    if (points.length == 3) {
+    if (points.length === 3) {
       // remove unnecessary intermediate if same level
       if (Math.abs(points[0].getX() - points[2].getX()) < lineLeeway || Math.abs(points[0].getY() - points[2].getY()) < lineLeeway) {
         points.splice(1, 1);
@@ -337,7 +337,7 @@ export const populateModel = (displayModel: DisplayModel, model: TaipyDiagramMod
       const parentNode = nodeModels[nodeType] && nodeModels[nodeType][nodeName];
       const childNode = nodeModels[childType] && nodeModels[childType][childName];
       if (parentNode && childNode) {
-        const link = createLink(parentNode.getPort(OutPortName) as DefaultPortModel, childNode.getPort(InPortName) as DefaultPortModel);
+        const link = createLink(parentNode.getPort(OUT_PORT_NAME) as DefaultPortModel, childNode.getPort(IN_PORT_NAME) as DefaultPortModel);
         if (Array.isArray(linkDetail.positions) && linkDetail.positions.length) {
           link.setPoints(linkDetail.positions.map(([x, y]) => link.point(x, y)));
         }

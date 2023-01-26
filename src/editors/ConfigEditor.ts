@@ -43,22 +43,22 @@ import {
   isUriEqual,
 } from "../providers/PerpectiveContentProvider";
 import {
-  CreateLink,
-  CreateNode,
-  DeleteLink,
-  GetNodeName,
-  Refresh,
-  RemoveExtraEntities,
-  RemoveNode,
-  SaveAsPngUrl,
-  SaveDocument,
-  Select,
-  SetExtraEntities,
-  SetPositions,
-  UpdateExtraEntities,
+  CREATE_LINK,
+  CREATE_NODE,
+  DELETE_LINK,
+  GET_NODE_NAME,
+  REFRESH,
+  REMOVE_EXTRA_ENTITIES,
+  REMOVE_NODE,
+  SAVE_AS_PNG_URL,
+  SAVE_DOCUMENT,
+  SELECT,
+  SET_EXTRA_ENTITIES,
+  SET_POSITIONS,
+  UPDATE_EXTRA_ENTITIES,
 } from "../../shared/commands";
 import { EditorAddNodeMessage, ViewMessage } from "../../shared/messages";
-import { ConfigEditorId, ConfigEditorProps, containerId, webviewsLibraryDir, webviewsLibraryName } from "../../shared/views";
+import { CONFIG_EDITOR_ID, ConfigEditorProps, containerId, webviewsLibraryDir, webviewsLibraryName } from "../../shared/views";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
 import { getChildType } from "../../shared/childtype";
 import { Context } from "../context";
@@ -66,6 +66,7 @@ import { getDefaultContent, getDescendantProperties, getParentType, getSectionNa
 import { Positions } from "../../shared/diagram";
 import { ConfigCompletionItemProvider } from "../providers/CompletionItemProvider";
 import { ConfigDropEditProvider } from "../providers/DocumentDropEditProvider";
+import { getNodeNameValidationFunction } from "../utils/pythonSymbols";
 
 interface EditorCache {
   positions?: Positions;
@@ -220,7 +221,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
         panels.forEach((p) => {
           try {
             p.webview.postMessage({
-              viewId: ConfigEditorId,
+              viewId: CONFIG_EDITOR_ID,
               props: {
                 displayModel: model,
                 perspectiveId: perspectiveId,
@@ -272,43 +273,43 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     // Receive message from the webview.
     const receiveMessageSubscription = webviewPanel.webview.onDidReceiveMessage((e) => {
       switch (e.command) {
-        case Select:
+        case SELECT:
           this.revealSection(document.uri, e.id, e.msg);
           return;
-        case Refresh:
+        case REFRESH:
           this.updateWebview(document);
           break;
-        case SetPositions:
+        case SET_POSITIONS:
           this.setPositions(document.uri, e.positions);
           break;
-        case CreateLink:
+        case CREATE_LINK:
           this.createLink(realDocument, e.sourceType, e.sourceName, e.targetType, e.targetName);
           break;
-        case DeleteLink:
+        case DELETE_LINK:
           this.deleteLink(realDocument, e.sourceType, e.sourceName, e.targetType, e.targetName);
           break;
-        case CreateNode:
+        case CREATE_NODE:
           this.createNode(realDocument, document.uri, e.nodeType, e.nodeName);
           break;
-        case RemoveNode:
+        case REMOVE_NODE:
           this.removeNodeFromPerspective(realDocument, e.nodeType, e.nodeName) && this.removeExtraEntitiesInCache(document.uri, `${e.nodeType}.${e.nodeName}`);
           break;
-        case GetNodeName:
+        case GET_NODE_NAME:
           this.getNodeName(realDocument, e.nodeType);
           break;
-        case SetExtraEntities:
+        case SET_EXTRA_ENTITIES:
           this.setExtraEntitiesInCache(document.uri, e.extraEntities);
           break;
-        case UpdateExtraEntities:
+        case UPDATE_EXTRA_ENTITIES:
           this.updateExtraEntitiesInCache(document.uri, e.extraEntities);
           break;
-        case RemoveExtraEntities:
+        case REMOVE_EXTRA_ENTITIES:
           this.removeExtraEntitiesInCache(document.uri, e.extraEntities);
           break;
-        case SaveDocument:
+        case SAVE_DOCUMENT:
           this.saveDocument(realDocument);
           break;
-        case SaveAsPngUrl:
+        case SAVE_AS_PNG_URL:
           this.saveAsPng(e.url);
           break;
       }
@@ -398,28 +399,19 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       .sort()
       .reduce((pv, s) => {
         if (s.name.toLowerCase() === pv.toLowerCase()) {
-          const parts = pv.split("-", 2);
-          if (parts.length === 1) {
-            return parts[0] + "-1";
+          const numSuffix = /^(.*)(_\d+)$/.exec(pv);
+          if (numSuffix?.length === 3) {
+            return numSuffix[1] + "_" + (parseInt(numSuffix[2].substring(1), 10) + 1);
           } else {
-            return parts[0] + "-" + (parseInt(parts[1]) + 1);
+            return pv + "_1";
           }
         }
         return pv;
-      }, nodeType + "-1");
-    const validateNodeName = (value: string) => {
-      if (!value || /[\s\.]/.test(value) || value.toLowerCase() === "default") {
-        return l10n.t("Entity {0} Name should not contain space, '.' or be empty or be default '{1}'", nodeType, value);
-      }
-      if (typeSymbol?.children.some(s => s.name.toLowerCase() === value.toLowerCase())) {
-        return l10n.t("Another {0} entity has the name {1}", nodeType, value);
-      }
-      return undefined as string;
-    };
+      }, nodeType + "_1");
     const newName = await window.showInputBox({
       prompt: l10n.t("Enter a name for a new {0} entity.", nodeType),
       title: l10n.t("new {0} name", nodeType),
-      validateInput: validateNodeName,
+      validateInput: getNodeNameValidationFunction(typeSymbol),
       value: nodeName,
     });
     if (newName && addNodeToActiveDiagram) {

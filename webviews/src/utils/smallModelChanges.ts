@@ -15,7 +15,7 @@ import { getDiff } from "recursive-diff";
 import { DisplayModel } from "../../../shared/diagram";
 
 import { TaipyDiagramModel, TaipyPortModel } from "../projectstorm/models";
-import { createNode, getNodeByName, InPortName, OutPortName } from "./diagram";
+import { createNode, getNodeByName, IN_PORT_NAME, OUT_PORT_NAME } from "./diagram";
 
 export const applySmallChanges = (model: TaipyDiagramModel, displayModel: DisplayModel, oldDisplayModel?: DisplayModel) => {
   if (!oldDisplayModel) {
@@ -29,15 +29,15 @@ export const applySmallChanges = (model: TaipyDiagramModel, displayModel: Displa
   const ops = diff.map((d) => d.op);
   const delI = ops.indexOf("delete");
   const addI = ops.indexOf("add");
-  if (delI == -1 || addI == -1) {
+  if (delI === -1 || addI === -1) {
     return false;
   }
   const pathLen = diff[addI].path.length;
-  if (pathLen != diff[delI].path.length || !diff[addI].path.slice(0, -1).every((p, i) => p == diff[delI].path[i])) {
+  if (pathLen !== diff[delI].path.length || !diff[addI].path.slice(0, -1).every((p, i) => p === diff[delI].path[i])) {
     // only deal with last path changes
     return false;
   }
-  if (diff[addI].path[pathLen - 1] == diff[delI].path[pathLen - 1]) {
+  if (diff[addI].path[pathLen - 1] === diff[delI].path[pathLen - 1]) {
     // Change in links
     return false;
   }
@@ -51,7 +51,7 @@ export const applySmallChanges = (model: TaipyDiagramModel, displayModel: Displa
   const node = createNode(nodeType, name, false);
   node.setPosition(oldNode.getPosition());
 
-  const inPort = oldNode.getPort(InPortName);
+  const inPort = oldNode.getPort(IN_PORT_NAME);
   if (inPort) {
     const port = node.addPort(TaipyPortModel.createInPort());
     model.getLinkLayers().forEach((ll) =>
@@ -61,7 +61,7 @@ export const applySmallChanges = (model: TaipyDiagramModel, displayModel: Displa
     );
   }
 
-  const outPort = oldNode.getPort(OutPortName);
+  const outPort = oldNode.getPort(OUT_PORT_NAME);
   if (outPort) {
     const port = node.addPort(TaipyPortModel.createOutPort());
     model.getLinkLayers().forEach((ll) =>

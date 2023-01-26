@@ -15,15 +15,19 @@ import {
   commands,
   DocumentSymbol,
   ExtensionContext,
+  l10n,
+  Position,
   Range,
   TextDocument,
   TextDocumentChangeEvent,
+  TextEdit,
   TextEditorRevealType,
   TreeItem,
   TreeView,
   Uri,
   window,
   workspace,
+  WorkspaceEdit,
 } from "vscode";
 import { JsonMap } from "@iarna/toml";
 
@@ -49,9 +53,10 @@ import { ConfigEditorProvider } from "./editors/ConfigEditor";
 import { cleanDocumentDiagnostics, reportInconsistencies } from "./utils/errors";
 import { ValidateFunction } from "ajv/dist/2020";
 import { getValidationFunction } from "./schema/validation";
-import { getSymbol } from "./utils/symbols";
+import { getDescendantProperties, getParentType, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "./utils/symbols";
 import { PythonCodeActionProvider } from "./providers/PythonCodeActionProvider";
 import { PythonLinkProvider } from "./providers/PythonLinkProvider";
+import { getNodeNameValidationFunction } from "./utils/pythonSymbols";
 
 const configNodeKeySort = (a: DocumentSymbol, b: DocumentSymbol) => (a === b ? 0 : a.name === "default" ? -1 : b.name === "default" ? 1 : a.name > b.name ? 1 : -1);
 
@@ -87,13 +92,14 @@ export class Context {
     // Configuration files
     this.configFilesView = new ConfigFilesView(this, "taipy-configs", this.selectionCache.fileUri);
     commands.registerCommand("taipy.config.refresh", this.configFilesView.refresh, this.configFilesView);
-    commands.registerCommand(selectConfigFileCmd, this.selectUri, this);
+    commands.registerCommand(selectConfigFileCmd, this.selectConfigUri, this);
     // global Commands
     commands.registerCommand(selectConfigNodeCmd, this.selectConfigNode, this);
     commands.registerCommand(revealConfigNodeCmd, this.revealConfigNodeInEditors, this);
     commands.registerCommand("taipy.perspective.show", this.showPerspective, this);
     commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this);
     commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this);
+    commands.registerCommand("taipy.config.renameNode", this.renameNode, this);
     // Perspective Provider
     vsContext.subscriptions.push(workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider()));
     // Create Tree Views
@@ -168,18 +174,19 @@ export class Context {
   private revealConfigNodesInTrees() {
     this.unselectConfigNode();
     this.treeProviders.forEach((p, idx) => {
-      const nodeType = p.getNodeType();
-      const lastSelectedUri = this.selectionCache[nodeType];
-      if (lastSelectedUri) {
-        const self = this;
-        setTimeout(() => {
-          const item = p.getNodeForUri(lastSelectedUri);
-          if (item && this.treeViews[idx].visible) {
-            this.treeViews[idx].reveal(item, { select: true });
-            self.selectConfigNode(nodeType, item.label as string, item.getNode(), item.resourceUri, false);
-          }
-        }, 1);
+      if (!this.treeViews[idx].visible) {
+        return;
       }
+      const nodeType = p.getNodeType();
+      const self = this;
+      setTimeout(() => {
+        const nodeName = this.selectionCache[nodeType];
+        const item = p.getItem(nodeName);
+        if (item) {
+          self.treeViews[idx].reveal(item, { select: true });
+          self.selectConfigNode(nodeType, item.label as string, item.getNode(), item.resourceUri, false);
+        }
+      }, 1);
     });
   }
 
@@ -214,7 +221,7 @@ export class Context {
     return (typeSymbol && typeSymbol.children.sort(configNodeKeySort)) || [];
   }
 
-  async selectUri(uri: Uri): Promise<void> {
+  async selectConfigUri(uri: Uri): Promise<void> {
     if (isUriEqual(uri, this.configFileUri)) {
       return;
     }
@@ -239,16 +246,24 @@ export class Context {
     this.configDetailsView.setEmptyContent();
   }
 
+  updateSelectionCache(nodeType: string, oldNodeName: string, nodeName: string) {
+    if (this.selectionCache[nodeType] === oldNodeName) {
+      this.selectionCache[nodeType] = nodeName;
+      this.vsContext.workspaceState.update(Context.cacheName, this.selectionCache);
+    }
+  }
+
   private async selectConfigNode(nodeType: string, name: string, configNode: object, uri: Uri, reveal = true, fromInEditor = true): Promise<void> {
     let updateCache = false;
+    console.log(`In selectConfigNode(nodeType: ${nodeType}, name: ${name}, configNode: object, uri: Uri, reveal = ${reveal}, fromInEditor = ${fromInEditor}) cache: ${this.selectionCache.lastView}`);
     if (reveal || this.selectionCache.lastView === nodeType) {
       this.configDetailsView.setConfigNodeContent(nodeType, name, configNode, uri);
     }
-    if (this.selectionCache[nodeType] !== uri.toString()) {
-      this.selectionCache[nodeType] = uri.toString();
+    if (this.selectionCache[nodeType] !== name) {
+      this.selectionCache[nodeType] = name;
       updateCache = true;
     }
-    if (this.selectionCache.lastView !== nodeType) {
+    if (reveal && this.selectionCache.lastView !== nodeType) {
       this.selectionCache.lastView = nodeType;
       updateCache = true;
     }
@@ -302,6 +317,10 @@ export class Context {
 
   private showPropertyLink(item: { baseUri: string; }) {
     commands.executeCommand("vscode.open", Uri.parse(item.baseUri, true));
+  }
+
+  private async renameNode(item: TreeItem) {
+    this.configDetailsView.doRenameNode(getOriginalUri(item.resourceUri), item.contextValue, item.label as string);
   }
 
   getSymbols(uri: string) {

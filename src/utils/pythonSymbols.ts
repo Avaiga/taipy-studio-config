@@ -56,3 +56,19 @@ export const getModulesAndSymbols = async (isFunction: boolean): Promise<[string
   });
   return [symbolsWithModule, modulesByUri];
 };
+
+const IDENTIFIER_RE = /^[A-Za-z]\w*$/;
+const isValidPythonIdentifier = (value: string) => !!value && IDENTIFIER_RE.test(value);
+export const checkPythonIdentifierValidity = (value: string) => isValidPythonIdentifier(value) ? null: l10n.t("Not a valid Python identifier.");
+
+export const getNodeNameValidationFunction = (typeSymbol?: DocumentSymbol, nodeName?: string) => {
+  return (value: string) => {
+    if (!isValidPythonIdentifier(value) || value.toLowerCase() === "default") {
+      return l10n.t("Entity {0} Name should be a valid python identifier and not 'default': '{1}'", typeSymbol?.name, value);
+    }
+    if (value !== nodeName && typeSymbol?.children.some(s => s.name === value)) {
+      return l10n.t("Another {0} entity has the name {1}", typeSymbol?.name, value);
+    }
+    return undefined as string;
+  };
+};

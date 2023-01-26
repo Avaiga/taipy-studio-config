@@ -149,7 +149,7 @@ export class ConfigFilesView {
         const sel = configItems.find((item) => item.resourceUri.toString() == lastSelectedUri);
         if (sel) {
           this.view.reveal(sel, { select: true });
-          this.context.selectUri(Uri.parse(lastSelectedUri));
+          this.context.selectConfigUri(Uri.parse(lastSelectedUri));
         }
       }, 1);
     }
