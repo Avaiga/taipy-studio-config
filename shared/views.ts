@@ -11,15 +11,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { Diagnostic } from "vscode";
 import { DisplayModel } from "./diagram";
 
-export const NoDetailsId = "NoDetails";
+export const NO_DETAILS_ID = "NoDetails";
 export interface NoDetailsProps {
   message: string;
 }
 
-export const DataNodeDetailsId = "DataNodeDetails";
+export const DATA_NODE_DETAILS_ID = "DataNodeDetails";
 export interface DataNodeDetailsProps {
   nodeType: string;
   nodeName: string;
@@ -29,7 +28,7 @@ export interface DataNodeDetailsProps {
 
 export type WebDiag = {message?: string; severity?: number; link?: boolean; uri: string};
 
-export const ConfigEditorId = "ConfigEditor";
+export const CONFIG_EDITOR_ID = "ConfigEditor";
 
 export interface ConfigEditorProps {
   displayModel: DisplayModel;

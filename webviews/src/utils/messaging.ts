@@ -12,33 +12,34 @@
  */
 
 import {
-  Action,
-  CreateLink,
-  CreateNode,
-  DeleteLink,
-  GetNodeName,
-  SaveAsPngUrl,
-  Refresh,
-  RemoveExtraEntities,
-  RemoveNode,
-  SaveDocument,
-  SetExtraEntities,
-  SetPositions,
-  UpdateExtraEntities,
-  EditProperty,
+  ACTION,
+  CREATE_LINK,
+  CREATE_NODE,
+  DELETE_LINK,
+  GET_NODE_NAME,
+  SAVE_AS_PNG_URL,
+  REFRESH,
+  REMOVE_EXTRA_ENTITIES,
+  REMOVE_NODE,
+  SAVE_DOCUMENT,
+  SET_EXTRA_ENTITIES,
+  SET_POSITIONS,
+  UPDATE_EXTRA_ENTITIES,
+  EDIT_PROPERTY,
+  EDIT_NODE_NAME,
 } from "../../../shared/commands";
 import { Positions } from "../../../shared/diagram";
 
-type vscodeApiRet = { postMessage: (pl: Record<string, unknown>) => void };
+type VsCodeApiRet = { postMessage: (pl: Record<string, unknown>) => void };
 
 declare global {
   interface Window {
-    acquireVsCodeApi: () => vscodeApiRet;
+    acquireVsCodeApi: () => VsCodeApiRet;
     __webpack_nonce__: string;
   }
 }
 
-let vsCodeApi: vscodeApiRet;
+let vsCodeApi: VsCodeApiRet;
 
 export const getVsCodeApi = () => {
   if (!vsCodeApi) {
@@ -47,19 +48,20 @@ export const getVsCodeApi = () => {
   return vsCodeApi;
 };
 
-export const postActionMessage = (id: string, msg?: string, command = Action) => getVsCodeApi()?.postMessage({ command, id, msg });
-export const postRefreshMessage = () => getVsCodeApi()?.postMessage({ command: Refresh });
-export const postPositionsMessage = (positions: Positions) => getVsCodeApi()?.postMessage({ command: SetPositions, positions });
-export const postNodeCreation = (nodeType: string, nodeName: string) => getVsCodeApi()?.postMessage({ command: CreateNode, nodeType, nodeName });
-export const postNodeRemoval = (nodeType: string, nodeName: string) => getVsCodeApi()?.postMessage({ command: RemoveNode, nodeType, nodeName });
+export const postActionMessage = (id: string, msg?: string, command = ACTION) => getVsCodeApi()?.postMessage({ command, id, msg });
+export const postRefreshMessage = () => getVsCodeApi()?.postMessage({ command: REFRESH });
+export const postPositionsMessage = (positions: Positions) => getVsCodeApi()?.postMessage({ command: SET_POSITIONS, positions });
+export const postNodeCreation = (nodeType: string, nodeName: string) => getVsCodeApi()?.postMessage({ command: CREATE_NODE, nodeType, nodeName });
+export const postNodeRemoval = (nodeType: string, nodeName: string) => getVsCodeApi()?.postMessage({ command: REMOVE_NODE, nodeType, nodeName });
 export const postLinkCreation = (sourceType: string, sourceName: string, targetType: string, targetName: string) =>
-  getVsCodeApi()?.postMessage({ command: CreateLink, sourceType, sourceName, targetType, targetName });
+  getVsCodeApi()?.postMessage({ command: CREATE_LINK, sourceType, sourceName, targetType, targetName });
 export const postLinkDeletion = (sourceType: string, sourceName: string, targetType: string, targetName: string) =>
-  getVsCodeApi()?.postMessage({ command: DeleteLink, sourceType, sourceName, targetType, targetName });
-export const postGetNodeName = (nodeType: string) => getVsCodeApi()?.postMessage({ command: GetNodeName, nodeType });
-export const postSetExtraEntities = (extraEntities: string) => getVsCodeApi()?.postMessage({ command: SetExtraEntities, extraEntities });
-export const postUpdateExtraEntities = (extraEntities: string) => getVsCodeApi()?.postMessage({ command: UpdateExtraEntities, extraEntities });
-export const postRemoveExtraEntities = (extraEntities: string) => getVsCodeApi()?.postMessage({ command: RemoveExtraEntities, extraEntities });
-export const postSaveMessage = () => getVsCodeApi()?.postMessage({ command: SaveDocument });
-export const postSaveAsPngUrl = (pngAsUrl: string) => getVsCodeApi()?.postMessage({ command: SaveAsPngUrl, url: pngAsUrl });
-export const postEditProperty = (nodeType: string, nodeName: string, propertyName?: string, propertyValue?: string | string[]) => getVsCodeApi()?.postMessage({ command: EditProperty, nodeType, nodeName, propertyName, propertyValue });
+  getVsCodeApi()?.postMessage({ command: DELETE_LINK, sourceType, sourceName, targetType, targetName });
+export const postGetNodeName = (nodeType: string) => getVsCodeApi()?.postMessage({ command: GET_NODE_NAME, nodeType });
+export const postSetExtraEntities = (extraEntities: string) => getVsCodeApi()?.postMessage({ command: SET_EXTRA_ENTITIES, extraEntities });
+export const postUpdateExtraEntities = (extraEntities: string) => getVsCodeApi()?.postMessage({ command: UPDATE_EXTRA_ENTITIES, extraEntities });
+export const postRemoveExtraEntities = (extraEntities: string) => getVsCodeApi()?.postMessage({ command: REMOVE_EXTRA_ENTITIES, extraEntities });
+export const postSaveMessage = () => getVsCodeApi()?.postMessage({ command: SAVE_DOCUMENT });
+export const postSaveAsPngUrl = (pngAsUrl: string) => getVsCodeApi()?.postMessage({ command: SAVE_AS_PNG_URL, url: pngAsUrl });
+export const postEditProperty = (nodeType: string, nodeName: string, propertyName?: string, propertyValue?: string | string[]) => getVsCodeApi()?.postMessage({ command: EDIT_PROPERTY, nodeType, nodeName, propertyName, propertyValue });
+export const postEditNodeName = (nodeType: string, nodeName: string) => getVsCodeApi()?.postMessage({ command: EDIT_NODE_NAME, nodeType, nodeName });
