@@ -64,10 +64,10 @@ export const checkPythonIdentifierValidity = (value: string) => isValidPythonIde
 export const getNodeNameValidationFunction = (typeSymbol?: DocumentSymbol, nodeName?: string) => {
   return (value: string) => {
     if (!isValidPythonIdentifier(value) || value.toLowerCase() === "default") {
-      return l10n.t("Entity {0} Name should be a valid python identifier and not 'default': '{1}'", typeSymbol?.name, value);
+      return l10n.t("Element {0} Name should be a valid Python identifier and not 'default': '{1}'", typeSymbol?.name, value);
     }
     if (value !== nodeName && typeSymbol?.children.some(s => s.name === value)) {
-      return l10n.t("Another {0} entity has the name {1}", typeSymbol?.name, value);
+      return l10n.t("Another {0} element has the name {1}", typeSymbol?.name, value);
     }
     return undefined as string;
   };

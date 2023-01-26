@@ -255,7 +255,6 @@ export class Context {
 
   private async selectConfigNode(nodeType: string, name: string, configNode: object, uri: Uri, reveal = true, fromInEditor = true): Promise<void> {
     let updateCache = false;
-    console.log(`In selectConfigNode(nodeType: ${nodeType}, name: ${name}, configNode: object, uri: Uri, reveal = ${reveal}, fromInEditor = ${fromInEditor}) cache: ${this.selectionCache.lastView}`);
     if (reveal || this.selectionCache.lastView === nodeType) {
       this.configDetailsView.setConfigNodeContent(nodeType, name, configNode, uri);
     }
