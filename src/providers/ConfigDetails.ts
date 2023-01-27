@@ -308,7 +308,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       return false;
     }
     const newName = await window.showInputBox({
-      title: l10n.t("Enter new name for {0}", nodeType),
+      title: l10n.t("Enter new identifier for {0}", nodeType),
       value: nodeName,
       validateInput: getNodeNameValidationFunction(getSymbol(symbols, nodeType), nodeName),
     });

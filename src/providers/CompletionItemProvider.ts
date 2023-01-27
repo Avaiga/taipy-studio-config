@@ -92,8 +92,8 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
       return props.map((nodeType) => {
         const ci = new CompletionItem(nodeType);
         ci.insertText = lineStart
-          ? new SnippetString(nodeType + ".").appendPlaceholder("element name")
-          : new SnippetString("[" + nodeType + ".").appendPlaceholder("element name").appendText("]\n");
+          ? new SnippetString(nodeType + ".").appendPlaceholder("element identifier")
+          : new SnippetString("[" + nodeType + ".").appendPlaceholder("element identifier").appendText("]\n");
         return ci;
       });
     }
