@@ -3,7 +3,7 @@
   "displayName": "Taipy Studio Configuration Builder",
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Taipy",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "homepage": "https://github.com/Avaiga/taipy-studio-config.git",
   "repository": {
     "type": "git",
@@ -17,8 +17,12 @@
     "vscode": "^1.73.1"
   },
   "categories": [
+    "Data Science",
+    "Machine Learning",
+    "Linters",
     "Other"
   ],
+  "keywords": ["Taipy", "Core", "Config"],
   "activationEvents": [
     "onCustomEditor:taipy.config.editor.diagram",
     "onView:taipy-config",
@@ -315,11 +319,6 @@
           "format": "icon",
           "default": "taipy-icon-scenario",
           "description": "%taipy.config.settings.diagram.scenario.icon.desc%"
-        },
-        "taipyStudio.parser.usePositions": {
-          "type": "boolean",
-          "default": true,
-          "description": "%taipy.config.settings.parser.usePositions.desc%"
         },
         "taipyStudio.status.timeout": {
           "type": "integer",

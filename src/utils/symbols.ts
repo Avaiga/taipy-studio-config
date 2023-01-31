@@ -66,7 +66,7 @@ const ignoredNodeNames = {
 
 export const getNodeFromSymbol = (doc: TextDocument, symbol: DocumentSymbol) => {
   const node = {};
-  symbol.children.forEach((s) => (node[s.name] = s.kind === SymbolKind.Array ? getSymbolArrayValue(doc, s) : getSymbolValue(doc, s)));
+  symbol && symbol.children.forEach((s) => (node[s.name] = s.kind === SymbolKind.Array ? getSymbolArrayValue(doc, s) : getSymbolValue(doc, s)));
   return node;
 };
 

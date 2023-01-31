@@ -13,7 +13,7 @@ export const getMainPythonUri = async () => {
       workspaceConfig.update("mainPythonFile", workspace.asRelativePath(mainUri));
       window.showInformationMessage(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri)));
     } else {
-      console.warn("No symbol detection as there is no python file in workspace.");
+      console.warn("No symbol detection as there is no Python file in workspace.");
     }
   }
   return mainUri || null;
@@ -64,10 +64,10 @@ export const checkPythonIdentifierValidity = (value: string) => isValidPythonIde
 export const getNodeNameValidationFunction = (typeSymbol?: DocumentSymbol, nodeName?: string) => {
   return (value: string) => {
     if (!isValidPythonIdentifier(value) || value.toLowerCase() === "default") {
-      return l10n.t("Element {0} Name should be a valid Python identifier and not 'default': '{1}'", typeSymbol?.name, value);
+      return l10n.t("Element {0} identifier should be a valid Python identifier and not 'default': '{1}'", typeSymbol?.name, value);
     }
     if (value !== nodeName && typeSymbol?.children.some(s => s.name === value)) {
-      return l10n.t("Another {0} element has the name {1}", typeSymbol?.name, value);
+      return l10n.t("Another {0} element has the identifier {1}", typeSymbol?.name, value);
     }
     return undefined as string;
   };
