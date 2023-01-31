@@ -409,7 +409,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
         return pv;
       }, nodeType + "_1");
     const newName = await window.showInputBox({
-      prompt: l10n.t("Enter a identifier for a new {0} element.", nodeType),
+      prompt: l10n.t("Enter an identifier for a new {0} element.", nodeType),
       title: l10n.t("new {0} identifier", nodeType),
       validateInput: getNodeNameValidationFunction(typeSymbol),
       value: nodeName,
