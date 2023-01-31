@@ -1,12 +1,7 @@
 {
   "name": "taipy-studio-webviews",
-  "displayName": "taipy-studio-webviews",
   "description": "Components for Visual Studio Code extension for Taipy",
-  "publisher": "Avaiga",
-  "version": "0.4.0",
-  "categories": [
-    "Other"
-  ],
+  "version": "0.4.2",
   "scripts": {
     "build": "webpack --mode development",
     "prod": "webpack --mode production",
@@ -29,8 +24,8 @@
     "webpack-cli": "^5.0.0"
   },
   "dependencies": {
-    "@projectstorm/react-diagrams": "^6.7.4",
-    "@vscode/l10n": "^0.0.10",
+    "@projectstorm/react-diagrams": "^7.0.1",
+    "@vscode/l10n": "^0.0.11",
     "debounce": "^1.2.1",
     "dom-to-image-more": "^2.12.0",
     "fast-deep-equal": "^3.1.3",
