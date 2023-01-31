@@ -11,7 +11,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { l10n, Position, Uri, Webview, window, workspace } from "vscode";
+import { exec } from "child_process";
+import { join } from "path";
+import { l10n, Position, Uri, Webview, workspace } from "vscode";
 
 export const getNonce = () => {
   const crypto = require("crypto");
@@ -22,7 +24,7 @@ export const configFileExt = ".toml";
 export const configFilePattern = `**/*${configFileExt}`;
 
 export const getCspScriptSrc = (nonce: string) => {
-  return "'nonce-" + nonce + "'" + (process.env.NODE_ENV == "development" ? " 'unsafe-eval'" : "");
+  return "'nonce-" + nonce + "'" + (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "");
 };
 
 export const textUriListMime = "text/uri-list";
@@ -35,3 +37,17 @@ export const getDefaultConfig = (webview: Webview, extensionUri: Uri) => {
 };
 
 export const getPositionFragment = (pos: Position) => `L${pos.line + 1}C${pos.character}`;
+
+export const getFilesFromPythonPackages = (file: string, packages: string[]) => {
+  const config = workspace.getConfiguration("python");
+  const pythonPath = config.get("pythonPath", "python");
+  return new Promise<Record<string, string>>((resolve, reject) => {
+    exec(`"${pythonPath}" "${join(__dirname, "python", "find_file_in_package.py")}" "${file}" "${packages.join('" "')}"`, (error, stdout, stderr) => {
+      if (error) {
+        console.warn(stderr);
+        return reject(error.code);
+      }
+      return resolve(JSON.parse(stdout));
+    });
+  });
+};

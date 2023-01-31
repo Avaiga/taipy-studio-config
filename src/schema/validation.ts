@@ -14,10 +14,24 @@
 import { JsonMap } from "@iarna/toml";
 import Ajv, { Schema, SchemaObject, ValidateFunction } from "ajv/dist/2020";
 
+import { getFilesFromPythonPackages } from "../utils/utils";
+import path = require("path");
+import { readFileSync } from "fs";
+
 let validationSchema: Schema;
 export const getValidationSchema = async () => {
   if (!validationSchema) {
-    validationSchema = await import("../../schemas/config.schema.json");
+    try {
+      const schemas = await getFilesFromPythonPackages("config.schema.json", ["taipy.core"]);
+      if (schemas && schemas["taipy.core"]) {
+        validationSchema = JSON.parse(readFileSync(schemas["taipy.core"], {encoding: 'utf8'}));
+      }
+    } catch(e) {
+      console.warn("Validation schema not found, using embedded.", e);
+    }
+    if (!validationSchema) {
+      validationSchema = await import("../../schemas/config.schema.json");
+    }
   }
   return validationSchema;
 };
