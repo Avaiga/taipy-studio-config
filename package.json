@@ -1,5 +1,5 @@
 {
-  "name": "taipy-studio-config",
+  "name": "studio-config",
   "displayName": "Taipy Studio Configuration Builder",
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Taipy",
