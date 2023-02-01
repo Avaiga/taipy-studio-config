@@ -42,8 +42,10 @@ export const getFilesFromPythonPackages = (file: string, packages: string[]) => 
   const config = workspace.getConfiguration("python");
   const pythonPath = config.get("pythonPath", "python");
   return new Promise<Record<string, string>>((resolve, reject) => {
-    exec(`"${pythonPath}" "${join(__dirname, "python", "find_file_in_package.py")}" "${file}" "${packages.join('" "')}"`, (error, stdout, stderr) => {
+    const cmd = `"${pythonPath}" "${join(__dirname, "python", "find_file_in_package.py")}" "${file}" "${packages.join('" "')}"`;
+    exec(cmd, (error, stdout, stderr) => {
       if (error) {
+        console.warn(cmd, '=>', error);
         stderr && console.warn(stderr);
         return reject(error.code);
       }
