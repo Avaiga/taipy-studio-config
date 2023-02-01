@@ -3,7 +3,7 @@
   "displayName": "Taipy Studio Configuration Builder",
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Taipy",
-  "version": "0.4.2",
+  "version": "0.4.4",
   "homepage": "https://github.com/Avaiga/taipy-studio-config.git",
   "repository": {
     "type": "git",
@@ -133,23 +133,23 @@
         {
           "id": "taipy-config-datanodes",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-datanodes%",
-          "when": "taipy:numberOfConfigFiles>0"
+          "when": "taipy.config.numberOfConfigFiles>0"
         },
         {
           "id": "taipy-config-tasks",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-tasks%",
-          "when": "taipy:numberOfConfigFiles>0"
+          "when": "taipy.config.numberOfConfigFiles>0"
         },
         {
           "id": "taipy-config-pipelines",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-pipelines%",
-          "when": "taipy:numberOfConfigFiles>0",
+          "when": "taipy.config.numberOfConfigFiles>0",
           "visibility": "collapsed"
         },
         {
           "id": "taipy-config-scenarios",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-scenarios%",
-          "when": "taipy:numberOfConfigFiles>0",
+          "when": "taipy.config.numberOfConfigFiles>0",
           "visibility": "collapsed"
         },
         {
@@ -218,11 +218,11 @@
       "view/item/context": [
         {
           "command": "taipy.perspective.show",
-          "when": "view == taipy-configs || viewItem != default && view == taipy-config-pipelines || viewItem != default && view == taipy-config-scenarios"
+          "when": "view == taipy-configs || viewItem != default && view =~ /taipy-config-(pipelines|scenarios)/"
         },
         {
           "command": "taipy.diagram.addNode",
-          "when": "viewItem != default && view == taipy-config-datanodes || viewItem != default && view == taipy-config-tasks || viewItem != default && view == taipy-config-pipelines"
+          "when": "taipy.config.diagram.visible && viewItem != default && view =~ /taipy-config-(datanodes|tasks|pipelines)/"
         },
         {
           "command": "taipy.config.deleteNode",
@@ -329,6 +329,12 @@
           "type": "string",
           "default": "main.py",
           "description": "%taipy.config.settings.config.mainPythonFile.desc%"
+        }
+        ,
+        "taipyStudio.config.useSchemaFromPackage": {
+          "type": "boolean",
+          "default": true,
+          "description": "%taipy.config.settings.config.useSchemaFromPackage.desc%"
         }
       }
     }

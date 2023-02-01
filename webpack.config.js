@@ -55,6 +55,10 @@ const config = (env, argv) => ({
           to: "schemas"
         },
         {
+          from: path.resolve(__dirname, "python"),
+          to: "python"
+        },
+        {
           from: path.resolve(__dirname, "l10n"),
           to: "l10n",
         }
