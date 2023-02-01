@@ -44,7 +44,7 @@ export const getFilesFromPythonPackages = (file: string, packages: string[]) => 
   return new Promise<Record<string, string>>((resolve, reject) => {
     exec(`"${pythonPath}" "${join(__dirname, "python", "find_file_in_package.py")}" "${file}" "${packages.join('" "')}"`, (error, stdout, stderr) => {
       if (error) {
-        console.warn(stderr);
+        stderr && console.warn(stderr);
         return reject(error.code);
       }
       return resolve(JSON.parse(stdout));
