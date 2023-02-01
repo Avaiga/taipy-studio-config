@@ -23,7 +23,7 @@ import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
 let validationSchema: Schema;
 export const getValidationSchema = async () => {
   if (!validationSchema) {
-    if (workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_NAME).get("config.useShemaFromPackage", true)) {
+    if (workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_NAME).get("config.useSchemaFromPackage", true)) {
       try {
         const schemas = await getFilesFromPythonPackages("config.schema.json", ["taipy.core"]);
         if (schemas && schemas["taipy.core"]) {

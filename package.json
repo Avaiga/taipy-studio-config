@@ -331,10 +331,10 @@
           "description": "%taipy.config.settings.config.mainPythonFile.desc%"
         }
         ,
-        "taipyStudio.config.useShemaFromPackage": {
+        "taipyStudio.config.useSchemaFromPackage": {
           "type": "boolean",
           "default": true,
-          "description": "%taipy.config.settings.config.useShemaFromPackage.desc%"
+          "description": "%taipy.config.settings.config.useSchemaFromPackage.desc%"
         }
       }
     }
