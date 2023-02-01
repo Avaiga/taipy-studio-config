@@ -1,7 +1,7 @@
 {
   "Do you really want to permanently delete {0}:{1} from the configuration?": "Do you really want to permanently delete {0}:{1} from the configuration?",
   "Cannot show a {0} entity in a {1} Perpective.": "Cannot show a {0} entity in a {1} Perpective.",
-  "Enter a identifier for a new {0} element.": "Enter a identifier for a new {0} element.",
+  "Enter an identifier for a new {0} element.": "Enter an identifier for a new {0} element.",
   "new {0} identifier": "new {0} identifier",
   "New module name": "New module name",
   "function name": "function name",

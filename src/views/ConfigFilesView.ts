@@ -108,7 +108,7 @@ export class ConfigFilesView {
         uri: uri,
         label: baseName,
         path: path,
-        dir: lastSepIndex == -1 ? "" : path.substring(0, lastSepIndex),
+        dir: lastSepIndex === -1 ? "" : path.substring(0, lastSepIndex),
       };
       if (baseName in baseDescs) {
         baseDescs[baseName].push(fileDesc);
@@ -125,7 +125,7 @@ export class ConfigFilesView {
           const dirs = desc.map((d) => d.dir);
           let prefix = dirs[0];
           dirs.slice(1).forEach((d) => {
-            while (prefix && d.substring(0, prefix.length) != prefix) {
+            while (prefix && d.substring(0, prefix.length) !== prefix) {
               prefix = prefix.substring(0, prefix.length - 1);
               if (!prefix) {
                 break;
@@ -142,11 +142,11 @@ export class ConfigFilesView {
         }
       });
     this.dataProvider.items = configItems;
-    commands.executeCommand("setContext", "taipy:numberOfConfigFiles", configItems.length);
+    commands.executeCommand("setContext", "taipy.config.numberOfConfigFiles", configItems.length);
     this.dataProvider.treeDataChanged();
     if (lastSelectedUri && this.view.visible) {
       setTimeout(() => {
-        const sel = configItems.find((item) => item.resourceUri.toString() == lastSelectedUri);
+        const sel = configItems.find((item) => item.resourceUri.toString() === lastSelectedUri);
         if (sel) {
           this.view.reveal(sel, { select: true });
           this.context.selectConfigUri(Uri.parse(lastSelectedUri));

@@ -74,7 +74,7 @@ const EXTRACT_STRINGS_RE = /['"]\s*,\s*["']/;
 
 export const getArrayFromText = (text: string) => {
   if (text.trim()) {
-    return text.trim().slice(1, -1).trim().slice(1, -1).split(EXTRACT_STRINGS_RE);
+    return text.trim().slice(1, -1).trim().slice(1, -1).split(EXTRACT_STRINGS_RE).filter(v => v);
   }
   return [];
 };
