@@ -136,7 +136,7 @@ const getLink = (linkName: LinkName, positions?: Positions) => {
 
 const defaultContents: Record<string, Record<string, string | string[]>> = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  [DataNode]: { storage_type: "", scope: "", cacheable: "False:bool" },
+  [DataNode]: { storage_type: "", scope: "" },
   [Task]: { [TASK_INPUTS]: [], [TASK_OUTPUTS]: [], function: "" },
   [Pipeline]: { [PIPELINE_TASKS]: [] },
   [Scenario]: { [SCENARIO_PIPELINES]: [] },
