@@ -232,7 +232,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
               } as ConfigEditorProps,
             } as ViewMessage);
           } catch (e) {
-            getLog().info("Looks like this panelView was disposed.", e.message || e);
+            getLog().info(l10n.t("Looks like this panelView was disposed. {0}", e.message || e));
           }
         });
       });

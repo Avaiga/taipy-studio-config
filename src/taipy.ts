@@ -12,7 +12,7 @@
  */
 
 import { readFile } from "fs";
-import { ExtensionContext, commands, Uri } from "vscode";
+import { ExtensionContext, commands, Uri, l10n } from "vscode";
 import { Context } from "./context";
 import { getLog } from "./utils/logging";
 
@@ -23,12 +23,12 @@ export async function activate(vsContext: ExtensionContext) {
         if (!err) {
             try {
                 const pkg = JSON.parse(data);
-                getLog().info(`${pkg.displayName}: ${pkg.version} from ${vsContext.extensionPath}`);
+                getLog().info(l10n.t("{0}: {1} from {2}", pkg.displayName, pkg.version, vsContext.extensionPath));
             } catch (e) {
-                getLog().error("Can't parse package.json from", vsContext.extensionPath, e);
+                getLog().error(l10n.t("Can't parse package.json from {0}: {1}", vsContext.extensionPath, e.message || e));
             }
         } else {
-            getLog().error("Can't read package.json from", vsContext.extensionPath, err);
+            getLog().error(l10n.t("Can't read package.json from {0}: {1}", vsContext.extensionPath, err.message));
         }
     });
 }

@@ -15,7 +15,7 @@ import { JsonMap } from "@iarna/toml";
 import Ajv, { Schema, SchemaObject, ValidateFunction } from "ajv/dist/2020";
 import path = require("path");
 import { readFileSync } from "fs";
-import { workspace } from "vscode";
+import { l10n, workspace } from "vscode";
 
 import { getFilesFromPythonPackages } from "../utils/utils";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
@@ -33,7 +33,7 @@ export const getValidationSchema = async () => {
       await sleep(300);
     }
     if (!validationSchema) {
-      getLog().warn("Trying to resolve TOML Schema Validation once more.");
+      getLog().warn(l10n.t("Trying to resolve TOML Schema Validation once more."));
     }
   }
   if (!validationSchema) {
@@ -43,15 +43,15 @@ export const getValidationSchema = async () => {
         const schemas = await getFilesFromPythonPackages("config.schema.json", ["taipy.core"]);
         if (schemas && schemas["taipy.core"]) {
           validationSchema = JSON.parse(readFileSync(schemas["taipy.core"], {encoding: 'utf8'}));
-          getLog().info("Using TOML Schema Validation from", schemas["taipy.core"]);
+          getLog().info(l10n.t("Using TOML Schema Validation from {0]", schemas["taipy.core"]));
         }
       } catch(e) {
-        getLog().warn("Validation schema not found, using embedded.", e);
+        getLog().warn(l10n.t("Validation Schema not found in package. {0}", e));
       }
     }
     if (!validationSchema) {
       validationSchema = await import("../../schemas/config.schema.json");
-      getLog().info("Using embedded TOML Schema Validation");
+      getLog().info(l10n.t("Using embedded TOML Schema Validation"));
     }
   }
   return validationSchema;
