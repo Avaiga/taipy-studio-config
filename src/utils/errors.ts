@@ -111,7 +111,7 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
   const pythonSymbols = Object.keys(pythonSymbol2TomlSymbols);
   const pythonUris = [] as Uri[];
   if (!workspace.workspaceFolders?.length) {
-    getLog().warn("No symbol detection as we are not in the context of a workspace.");
+    getLog().warn(l10n.t("No symbol detection as we are not in the context of a workspace."));
   }
   if (pythonSymbols.length && workspace.workspaceFolders?.length) {
     const mainUri = await getMainPythonUri();

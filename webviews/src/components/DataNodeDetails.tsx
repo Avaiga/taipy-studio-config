@@ -73,7 +73,7 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics }: DataNodeDetail
             </Fragment>
           );
         })}
-        <div>{l10n.t("New Property")}</div>
+        <div>{l10n.t("New property")}</div>
         <div></div>
         <div className="panel-button icon" title={l10n.t("edit")} onClick={editPropertyValue}>
           <i className="codicon codicon-edit"></i>
