@@ -52,6 +52,7 @@ import { getDescendantProperties, getNodeFromSymbol, getParentType, getPythonSuf
 import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
 import { checkPythonIdentifierValidity, getCreateFunctionOrClassLabel, getModulesAndSymbols, getNodeNameValidationFunction } from "../utils/pythonSymbols";
+import { getLog } from "../utils/logging";
 
 export class ConfigDetailsView implements WebviewViewProvider {
   private _view: WebviewView;
@@ -198,6 +199,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       );
       if (!childNames.length) {
         window.showInformationMessage(l10n.t("No {0} entity in toml.", childType));
+        getLog().info(l10n.t("No {0} entity in toml.", childType));
         return;
       }
       const res = await window.showQuickPick(childNames, {

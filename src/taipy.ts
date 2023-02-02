@@ -11,12 +11,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { ExtensionContext, commands } from "vscode";
+import { readFile } from "fs";
+import { ExtensionContext, commands, Uri } from "vscode";
 import { Context } from "./context";
+import { getLog } from "./utils/logging";
 
 export async function activate(vsContext: ExtensionContext) {
     commands.executeCommand('setContext', 'taipy.numberOfConfigs', 0);
     Context.create(vsContext);
+    readFile(Uri.joinPath(vsContext.extensionUri, 'package.json').fsPath, {encoding: 'utf-8'}, (err, data) => {
+        if (!err) {
+            try {
+                const pkg = JSON.parse(data);
+                getLog().info(`${pkg.displayName}: ${pkg.version} from ${vsContext.extensionPath}`);
+            } catch (e) {
+                getLog().error("Can't parse package.json from", vsContext.extensionPath, e);
+            }
+        } else {
+            getLog().error("Can't read package.json from", vsContext.extensionPath, err);
+        }
+    });
 }
 
 // Extension is deactivated
