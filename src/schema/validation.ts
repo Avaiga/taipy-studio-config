@@ -19,22 +19,39 @@ import { workspace } from "vscode";
 
 import { getFilesFromPythonPackages } from "../utils/utils";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
+import { getLog } from "../utils/logging";
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let validationSchema: Schema;
+let schemaResolving = false;
 export const getValidationSchema = async () => {
+  if (!validationSchema && schemaResolving) {
+    // wait for validationSchema (timeout: 10 secs)
+    const end = Date.now() + 10000;
+    while (!validationSchema && Date.now() < end) {
+      await sleep(300);
+    }
+    if (!validationSchema) {
+      getLog().warn("Trying to resolve TOML Schema Validation once more.");
+    }
+  }
   if (!validationSchema) {
+    schemaResolving = true;
     if (workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_NAME).get("config.useSchemaFromPackage", true)) {
       try {
         const schemas = await getFilesFromPythonPackages("config.schema.json", ["taipy.core"]);
         if (schemas && schemas["taipy.core"]) {
           validationSchema = JSON.parse(readFileSync(schemas["taipy.core"], {encoding: 'utf8'}));
+          getLog().info("Using TOML Schema Validation from", schemas["taipy.core"]);
         }
       } catch(e) {
-        console.warn("Validation schema not found, using embedded.", e);
+        getLog().warn("Validation schema not found, using embedded.", e);
       }
     }
     if (!validationSchema) {
       validationSchema = await import("../../schemas/config.schema.json");
+      getLog().info("Using embedded TOML Schema Validation");
     }
   }
   return validationSchema;

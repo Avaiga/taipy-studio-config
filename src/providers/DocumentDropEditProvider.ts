@@ -15,6 +15,7 @@ import { CancellationToken, DataTransfer, DocumentDropEdit, DocumentDropEditProv
 
 import { Context } from "../context";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
+import { getLog } from "../utils/logging";
 import { getPropertyToDropType, getSectionName } from "../utils/symbols";
 import { textUriListMime } from "../utils/utils";
 import { getNodeFromUri, getPerspectiveFromUri, isUriEqual } from "./PerpectiveContentProvider";
@@ -49,7 +50,7 @@ export class ConfigDropEditProvider implements DocumentDropEditProvider {
       try {
         u && uris.push(Uri.parse(u, true));
       } catch {
-        console.warn("provideDocumentDropEdits: Cannot parse ", u);
+        getLog().warn("provideDocumentDropEdits: Cannot parse ", u);
       }
     });
     if (!uris.length) {

@@ -20,6 +20,7 @@ import { getChildType } from "../../shared/childtype";
 import { DataNode, Pipeline, Task } from "../../shared/names";
 import { getPythonReferences } from "../schema/validation";
 import { getMainPythonUri } from "./pythonSymbols";
+import { getLog } from "./logging";
 
 const diagnoticsCollection = languages.createDiagnosticCollection("taipy-config-symbol");
 
@@ -110,7 +111,7 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
   const pythonSymbols = Object.keys(pythonSymbol2TomlSymbols);
   const pythonUris = [] as Uri[];
   if (!workspace.workspaceFolders?.length) {
-    console.warn("No symbol detection as we are not in the context of a workspace.");
+    getLog().warn("No symbol detection as we are not in the context of a workspace.");
   }
   if (pythonSymbols.length && workspace.workspaceFolders?.length) {
     const mainUri = await getMainPythonUri();

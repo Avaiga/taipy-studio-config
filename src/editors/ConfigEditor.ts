@@ -67,6 +67,7 @@ import { Positions } from "../../shared/diagram";
 import { ConfigCompletionItemProvider } from "../providers/CompletionItemProvider";
 import { ConfigDropEditProvider } from "../providers/DocumentDropEditProvider";
 import { getNodeNameValidationFunction } from "../utils/pythonSymbols";
+import { getLog } from "../utils/logging";
 
 interface EditorCache {
   positions?: Positions;
@@ -172,7 +173,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   }
 
   private addNodeToCurrentDiagram(item: TreeItem) {
-    this.addNodeToActiveDiagram(item.contextValue, item.label as string);
+    this.addNodeToActiveDiagram(item.contextValue, item.label as string, true);
   }
 
   private addNodeToActiveDiagram(nodeType: string, nodeName: string, check = false) {
@@ -200,7 +201,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
               nodeName: nodeName,
             } as EditorAddNodeMessage);
           } catch (e) {
-            console.log("addNodeToCurrentDiagram: ", e.message || e);
+            getLog().info("addNodeToCurrentDiagram: ", e.message || e);
           }
           return;
         }
@@ -231,7 +232,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
               } as ConfigEditorProps,
             } as ViewMessage);
           } catch (e) {
-            console.log("Looks like this panelView was disposed.", e.message || e);
+            getLog().info("Looks like this panelView was disposed.", e.message || e);
           }
         });
       });
