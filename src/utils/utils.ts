@@ -42,7 +42,7 @@ export const getPositionFragment = (pos: Position) => `L${pos.line + 1}C${pos.ch
 export const getFilesFromPythonPackages = (file: string, packages: string[]) => {
   const config = workspace.getConfiguration("python");
   const pythonPath = config.get("pythonPath", "python");
-  getLog().info(l10n.t("Using python interpreter: {0}", pythonPath));
+  getLog().info(l10n.t("Using Python interpreter: {0}", pythonPath));
   return new Promise<Record<string, string>>((resolve, reject) => {
     const cmd = `"${pythonPath}" "${join(__dirname, "python", "find_file_in_package.py")}" "${file}" "${packages.join('" "')}"`;
     exec(cmd, (error, stdout, stderr) => {

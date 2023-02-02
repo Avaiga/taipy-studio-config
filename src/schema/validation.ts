@@ -33,7 +33,7 @@ export const getValidationSchema = async () => {
       await sleep(300);
     }
     if (!validationSchema) {
-      getLog().warn(l10n.t("Trying to resolve TOML Schema Validation once more."));
+      getLog().warn(l10n.t("Trying to resolve TOML Schema Validation again."));
     }
   }
   if (!validationSchema) {
@@ -43,7 +43,7 @@ export const getValidationSchema = async () => {
         const schemas = await getFilesFromPythonPackages("config.schema.json", ["taipy.core"]);
         if (schemas && schemas["taipy.core"]) {
           validationSchema = JSON.parse(readFileSync(schemas["taipy.core"], {encoding: 'utf8'}));
-          getLog().info(l10n.t("Using TOML Schema Validation from {0]", schemas["taipy.core"]));
+          getLog().info(l10n.t("Using TOML Schema Validation from {0}", schemas["taipy.core"]));
         }
       } catch(e) {
         getLog().warn(l10n.t("Validation Schema not found in package. {0}", e));
