@@ -179,7 +179,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   private addNodeToActiveDiagram(nodeType: string, nodeName: string, check = false) {
     for (const pps of Object.values(this.panelsByUri)) {
       for (const [pId, ps] of Object.entries(pps)) {
-        const panel = ps.find((p) => p.active);
+        const panel = ps && ps.find((p) => p.active);
         if (panel) {
           if (check) {
             const perspType = pId.split(".", 2)[0];
@@ -232,7 +232,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
               } as ConfigEditorProps,
             } as ViewMessage);
           } catch (e) {
-            getLog().info("Looks like this panelView was disposed.", e.message || e);
+            getLog().info(l10n.t("Looks like this panelView was disposed. {0}", e.message || e));
           }
         });
       });
@@ -433,6 +433,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   private async createNode(realDocument: TextDocument, perspectiveUri: Uri, nodeType: string, nodeName: string) {
     const perspectiveId = getPerspectiveFromUri(perspectiveUri);
     const [perspType, perspName] = perspectiveId.split(".", 2);
+    await this.taipyContext.refreshSymbols(realDocument);
     const uri = realDocument.uri;
     const symbols = this.taipyContext.getSymbols(uri.toString());
     const nameSymbol = getSymbol(symbols, nodeType, nodeName);

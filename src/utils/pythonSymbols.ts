@@ -28,7 +28,7 @@ export const getMainPythonUri = async () => {
       window.showInformationMessage(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri)));
       getLog().info(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri)));
     } else {
-      getLog().warn("No symbol detection as there is no Python file in workspace.");
+      getLog().warn(l10n.t("No symbol detection as there is no Python file in workspace."));
     }
   }
   return mainUri || null;
