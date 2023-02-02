@@ -14,6 +14,7 @@
 import { exec } from "child_process";
 import { join } from "path";
 import { l10n, Position, Uri, Webview, workspace } from "vscode";
+import { getLog } from "./logging";
 
 export const getNonce = () => {
   const crypto = require("crypto");
@@ -41,12 +42,13 @@ export const getPositionFragment = (pos: Position) => `L${pos.line + 1}C${pos.ch
 export const getFilesFromPythonPackages = (file: string, packages: string[]) => {
   const config = workspace.getConfiguration("python");
   const pythonPath = config.get("pythonPath", "python");
+  getLog().info("Using python interpreter:", pythonPath);
   return new Promise<Record<string, string>>((resolve, reject) => {
     const cmd = `"${pythonPath}" "${join(__dirname, "python", "find_file_in_package.py")}" "${file}" "${packages.join('" "')}"`;
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
-        console.warn(cmd, '=>', error);
-        stderr && console.warn(stderr);
+        getLog().warn(cmd, '=>', error);
+        stderr && getLog().warn(stderr);
         return reject(error.code);
       }
       return resolve(JSON.parse(stdout));

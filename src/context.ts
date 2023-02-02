@@ -57,6 +57,7 @@ import { getDescendantProperties, getParentType, getSymbol, getSymbolArrayValue,
 import { PythonCodeActionProvider } from "./providers/PythonCodeActionProvider";
 import { PythonLinkProvider } from "./providers/PythonLinkProvider";
 import { getNodeNameValidationFunction } from "./utils/pythonSymbols";
+import { getLog } from "./utils/logging";
 
 const configNodeKeySort = (a: DocumentSymbol, b: DocumentSymbol) => (a === b ? 0 : a.name === "default" ? -1 : b.name === "default" ? 1 : a.name > b.name ? 1 : -1);
 
@@ -131,7 +132,7 @@ export class Context {
     // Json schema validator
     getValidationFunction()
       .then((fn) => (this.validateSchema = fn))
-      .catch(console.warn);
+      .catch(getLog().warn);
     // Quick fix
     PythonCodeActionProvider.register(vsContext);
     // python links
