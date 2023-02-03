@@ -217,6 +217,11 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     if (panelsByPersp) {
       const realDocument = await getOriginalDocument(doc);
       Object.entries(panelsByPersp).forEach(([perspectiveId, panels]) => {
+        const perspSymbol = getSymbol(symbols, ...perspectiveId.split("."));
+        if (!perspSymbol) {
+          panels.forEach((p) => p.dispose());
+          return;
+        }
         const cache = this.getCache(getPerspectiveUri(originalUri, perspectiveId).toString());
         const model = toDisplayModel(realDocument, symbols, cache.positions);
         panels.forEach((p) => {
@@ -329,6 +334,17 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       this.refreshVisibleContext();
     });
     this.refreshVisibleContext();
+  }
+
+  updateElement(nodeType: string, oldNodeName: string, nodeName: string) {
+    const oldPerspectiveId = `${nodeType}.${oldNodeName}`;
+    const newPerspectiveId = `${nodeType}.${nodeName}`;
+    Object.values(this.panelsByUri).forEach(val => {
+      if (oldPerspectiveId in val) {
+        val[newPerspectiveId] = val[oldPerspectiveId];
+        delete val[oldPerspectiveId];
+      }
+    });
   }
 
   private refreshVisibleContext() {

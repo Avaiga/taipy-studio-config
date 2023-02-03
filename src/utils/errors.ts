@@ -39,8 +39,11 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
           .forEach((prop) => {
             symbol.children.forEach((s) => {
               const linksSymbol = s.children.find((ss) => ss.name === prop);
+              if (!linksSymbol) {
+                return;
+              }
               const startOffset = doc.offsetAt(linksSymbol.range.start);
-              const value = linksSymbol && doc.getText(linksSymbol.range);
+              const value = doc.getText(linksSymbol.range);
               value &&
                 getArrayFromText(value).forEach((name: string) => {
                   const childName = getUnsuffixedName(name.trim());
@@ -68,9 +71,10 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
         typeSymbol.children
           .filter((nameSymbol) => "default" !== nameSymbol.name && !nodeIds.has(`${typeSymbol.name}.${nameSymbol.name}`))
           .forEach((nameSymbol) => {
+            const range = (nameSymbol.range.isSingleLine) ? nameSymbol.range : nameSymbol.range.with(nameSymbol.range.start, nameSymbol.range.start.translate(0, typeSymbol.name.length + nameSymbol.name.length + 50));
             diagnostics.push({
               severity: DiagnosticSeverity.Information,
-              range: nameSymbol.range,
+              range: range,
               message: l10n.t("No reference to element '{0}.{1}'.", typeSymbol.name, nameSymbol.name),
               source: "Consistency checker",
             });

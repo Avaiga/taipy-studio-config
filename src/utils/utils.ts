@@ -12,8 +12,8 @@
  */
 
 import { exec } from "child_process";
-import { join } from "path";
 import { l10n, Position, Uri, Webview, workspace } from "vscode";
+
 import { getLog } from "./logging";
 
 export const getNonce = () => {
@@ -44,7 +44,7 @@ export const getFilesFromPythonPackages = (file: string, packages: string[]) => 
   const pythonPath = config.get("pythonPath", "python");
   getLog().info(l10n.t("Using Python interpreter: {0}", pythonPath));
   return new Promise<Record<string, string>>((resolve, reject) => {
-    const cmd = `"${pythonPath}" "${join(__dirname, "python", "find_file_in_package.py")}" "${file}" "${packages.join('" "')}"`;
+    const cmd = `"${pythonPath}" "${Uri.joinPath(Uri.file(__dirname), "python", "find_file_in_package.py").fsPath}" "${file}" "${packages.join('" "')}"`;
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
         error.code > 1 && getLog().warn(cmd, '=>', error);

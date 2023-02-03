@@ -330,7 +330,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
     if (this.nodeType === nodeType && this.nodeName === nodeName) {
       this.nodeName = newName;
     }
-    this.taipyContext.updateSelectionCache(nodeType, nodeName, newName);
+    this.taipyContext.updateElement(nodeType, nodeName, newName);
     const tes = [TextEdit.replace(nameRange, newName)];
 
     // Apply change to references
@@ -342,7 +342,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
         getSymbol(symbols, parentType).children.forEach(parentSymbol => {
           descProps.forEach(property => {
             const propSymbol = getSymbol(parentSymbol.children, property);
-            if (getSymbolArrayValue(doc, propSymbol).some(val => nodeName === getUnsuffixedName(val))) {
+            if (getSymbolArrayValue(doc, propSymbol)?.some(val => nodeName === getUnsuffixedName(val))) {
               for (let i = propSymbol.range.start.line; i <= propSymbol.range.end.line; i++) {
                 const line = doc.lineAt(i).text;
                 const res = oldNameRegexp.exec(line);
