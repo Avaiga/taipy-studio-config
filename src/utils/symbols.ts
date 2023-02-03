@@ -76,7 +76,7 @@ const EXTRACT_ARRAY_INNER_CONTENT = /^\s*\[\s*['"](.*)['"]\s*,?\s*\]\s*$/;
 export const getArrayFromText = (text: string) => {
   if (text.trim()) {
     const res = EXTRACT_ARRAY_INNER_CONTENT.exec(text);
-    if (res.length === 2) {
+    if (res?.length === 2) {
       return res[1].split(EXTRACT_STRINGS_RE).filter(v => v);
     }
   }

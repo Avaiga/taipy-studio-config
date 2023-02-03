@@ -55,7 +55,7 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics }: DataNodeDetail
       <div className="property-grid">
         <h2>{nodeType}</h2>
         <h2>{nodeName}</h2>
-        <div className="panel-button icon" title={l10n.t("edit")} onClick={editNodeName}>
+        <div className="panel-button icon" title={l10n.t("Edit")} onClick={editNodeName}>
           <i className="codicon codicon-edit"></i>
         </div>
         {Object.entries(node).map(([k, n]) => {
@@ -67,7 +67,7 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics }: DataNodeDetail
             <Fragment key={k}>
               <div {...valProps}>{k}</div>
               <div {...valProps}>{getAsString(n)}</div>
-              <div className="panel-button icon" data-property-name={k} title={l10n.t("edit")} onClick={editPropertyValue}>
+              <div className="panel-button icon" data-property-name={k} title={l10n.t("Edit")} onClick={editPropertyValue}>
                 <i className="codicon codicon-edit"></i>
               </div>
             </Fragment>
@@ -75,7 +75,7 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics }: DataNodeDetail
         })}
         <div>{l10n.t("New property")}</div>
         <div></div>
-        <div className="panel-button icon" title={l10n.t("edit")} onClick={editPropertyValue}>
+        <div className="panel-button icon" title={l10n.t("Edit")} onClick={editPropertyValue}>
           <i className="codicon codicon-edit"></i>
         </div>
       </div>

@@ -84,8 +84,7 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
   // check python function or class references
   const pythonReferences = await getPythonReferences();
   const pythonSymbol2TomlSymbols = {} as Record<string, { uri?: Uri; symbols: Array<DocumentSymbol>; isFunction: boolean }>;
-  symbols
-    .filter((typeSymbol) => !!pythonReferences[typeSymbol.name])
+  symbols?.filter((typeSymbol) => !!pythonReferences[typeSymbol.name])
     .forEach((typeSymbol) =>
       typeSymbol.children.forEach((nameSymbol) =>
         nameSymbol.children
