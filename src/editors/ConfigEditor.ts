@@ -58,7 +58,7 @@ import {
   UPDATE_EXTRA_ENTITIES,
 } from "../../shared/commands";
 import { EditorAddNodeMessage, ViewMessage } from "../../shared/messages";
-import { CONFIG_EDITOR_ID, ConfigEditorProps, containerId, webviewsLibraryDir, webviewsLibraryName } from "../../shared/views";
+import { CONFIG_EDITOR_ID, ConfigEditorProps, containerId, webviewsLibraryDir, webviewsLibraryName, perspectiveRootId } from "../../shared/views";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
 import { getChildType } from "../../shared/childtype";
 import { Context } from "../context";
@@ -217,7 +217,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     if (panelsByPersp) {
       const realDocument = await getOriginalDocument(doc);
       Object.entries(panelsByPersp).forEach(([perspectiveId, panels]) => {
-        const perspSymbol = getSymbol(symbols, ...perspectiveId.split("."));
+        const perspSymbol = perspectiveId === perspectiveRootId ? true : getSymbol(symbols, ...perspectiveId.split("."));
         if (!perspSymbol) {
           panels.forEach((p) => p.dispose());
           return;
