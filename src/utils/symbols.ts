@@ -71,10 +71,14 @@ export const getNodeFromSymbol = (doc: TextDocument, symbol: DocumentSymbol) => 
 };
 
 const EXTRACT_STRINGS_RE = /['"]\s*,\s*["']/;
+const EXTRACT_ARRAY_INNER_CONTENT = /^\s*\[\s*['"](.*)['"]\s*,?\s*\]\s*$/;
 
 export const getArrayFromText = (text: string) => {
   if (text.trim()) {
-    return text.trim().slice(1, -1).trim().slice(1, -1).split(EXTRACT_STRINGS_RE).filter(v => v);
+    const res = EXTRACT_ARRAY_INNER_CONTENT.exec(text);
+    if (res.length === 2) {
+      return res[1].split(EXTRACT_STRINGS_RE).filter(v => v);
+    }
   }
   return [];
 };
@@ -82,7 +86,7 @@ export const getArrayFromText = (text: string) => {
 export const getSymbolArrayValue = (doc: TextDocument, symbol: DocumentSymbol, prop?: string) => getSymbolValue(doc, symbol, prop) as string[];
 
 const getSymbolValue = <T>(doc: TextDocument, symbol: DocumentSymbol, prop?: string) => {
-  const propSymbol = prop ? symbol.children.find((s) => s.name === prop) : symbol;
+  const propSymbol = prop ? symbol?.children.find((s) => s.name === prop) : symbol;
   if (propSymbol) {
     if (propSymbol.kind === SymbolKind.Array) {
       return getArrayFromText(doc.getText(propSymbol.range));
