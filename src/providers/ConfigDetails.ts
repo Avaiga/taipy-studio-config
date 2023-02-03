@@ -51,7 +51,7 @@ import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunctio
 import { getDescendantProperties, getNodeFromSymbol, getParentType, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
-import { checkPythonIdentifierValidity, getCreateFunctionOrClassLabel, getModulesAndSymbols, getNodeNameValidationFunction } from "../utils/pythonSymbols";
+import { checkPythonIdentifierValidity, getCreateFunctionOrClassLabel, getModulesAndSymbols, getNodeNameValidationFunction, MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
 import { getLog } from "../utils/logging";
 
 export class ConfigDetailsView implements WebviewViewProvider {
@@ -217,10 +217,9 @@ export class ConfigDetailsView implements WebviewViewProvider {
         const [symbolsWithModule, modulesByUri] = await getModulesAndSymbols(isFn);
         const currentModule = propertyValue && (propertyValue as string).split(".", 2)[0];
         let resMod: string;
-        let resUri: string;
         if (Object.keys(modulesByUri).length) {
           const items = Object.entries(modulesByUri).map(
-            ([uri, module]) => ({ label: module, picked: module === currentModule, uri: uri } as QuickPickItem & { uri?: string; create?: boolean })
+            ([uri, module]) => ({ label: module, description: module === MAIN_PYTHON_MODULE ? uri.split("/").at(-1) : undefined, picked: module === currentModule, uri: uri } as QuickPickItem & { uri?: string; create?: boolean })
           );
           items.push({ label: "", kind: QuickPickItemKind.Separator });
           items.push({ label: l10n.t("New module name"), create: true });
@@ -230,14 +229,12 @@ export class ConfigDetailsView implements WebviewViewProvider {
           }
           if (!item.create) {
             resMod = item.label;
-            resUri = item.uri;
           }
         }
         if (!resMod) {
           resMod = await window.showInputBox({ title: l10n.t("Enter Python module for {0}.{1}", nodeType, propertyName), value: currentModule });
           if (resMod) {
             resMod = resMod.trim();
-            resUri = Object.keys(modulesByUri).find((u) => modulesByUri[u] === resMod);
           }
         }
         if (!resMod) {
@@ -272,7 +269,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
         if (!resFunc) {
           return;
         }
-        newVal = `${resMod}.${resFunc}:${getPythonSuffix(isFn)}`;
+        newVal = `${resFunc}:${getPythonSuffix(isFn)}`;
       } else {
         const enumProps = await getEnumProps();
         const enumProp = enumProps.find((p) => p.toLowerCase() === propertyName?.toLowerCase());

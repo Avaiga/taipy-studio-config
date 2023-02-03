@@ -16,7 +16,7 @@ import { getLog } from "./logging";
 
 
 export const getMainPythonUri = async () => {
-  const workspaceConfig = workspace.getConfiguration("taipyStudio.config", workspace.workspaceFolders[0]);
+  const workspaceConfig = workspace.getConfiguration("taipyStudio.config", workspace.workspaceFolders && workspace.workspaceFolders[0]);
   const mainFile = workspaceConfig.get<string>("mainPythonFile");
   const mainUris = await workspace.findFiles(mainFile, null, 1);
   let mainUri = mainUris.length ? mainUris[0] : undefined;
@@ -36,6 +36,8 @@ export const getMainPythonUri = async () => {
 
 export const getCreateFunctionOrClassLabel = (isFunction: boolean) => isFunction ? l10n.t("Create a new function") : l10n.t("Create a new class");
 
+export const MAIN_PYTHON_MODULE = "__main__";
+
 export const getModulesAndSymbols = async (isFunction: boolean): Promise<[string[], Record<string, string>]> => {
   const pythonUris = await workspace.findFiles("**/*.py");
   const mainUri = await getMainPythonUri();
@@ -51,7 +53,7 @@ export const getModulesAndSymbols = async (isFunction: boolean): Promise<[string
   const modulesByUri = pythonUris.reduce((pv, uri) => {
     const uriStr = uri.path;
     if (uriStr === mainUri?.path) {
-      pv[uriStr] = "__main__";
+      pv[uriStr] = MAIN_PYTHON_MODULE;
     } else {
       const paths = workspace.asRelativePath(uri).split("/");
       const file = paths.at(-1);

@@ -17,6 +17,7 @@ import { selectConfigFileCmd } from "../utils/commands";
 import { Context } from "../context";
 import { configFileExt, configFilePattern } from "../utils/utils";
 
+export const FILE_CONTEXT = "File";
 class ConfigFileItem extends TreeItem {
   public constructor(baseName: string, readonly resourceUri: Uri, readonly tooltip: string, readonly description: string | null = null) {
     super(baseName, TreeItemCollapsibleState.None);
@@ -25,6 +26,7 @@ class ConfigFileItem extends TreeItem {
       title: l10n.t("Select file"),
       arguments: [resourceUri],
     };
+    this.contextValue = FILE_CONTEXT;
   }
 }
 
@@ -85,6 +87,14 @@ export class ConfigFilesView {
   
   private revealInExplorer(fileItem: ConfigFileItem) {
     commands.executeCommand("revealInExplorer", fileItem.resourceUri);
+  }
+
+  select(uri: Uri) {
+    if (!this.view.selection?.length) {
+      const uriStr = uri.toString();
+      const item = this.dataProvider.items.find(item => item.resourceUri.toString() === uriStr);
+      item && this.view.reveal(item, {select: true});
+    }
   }
 
   async refresh(lastSelectedUri?: string): Promise<void> {
