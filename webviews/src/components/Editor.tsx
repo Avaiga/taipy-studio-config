@@ -38,7 +38,7 @@ const onCreateNode = (evt: MouseEvent<HTMLDivElement>) => {
 
 const filter4Print = (node: Node) => node.nodeName !== "DIV" || !(node as HTMLDivElement).dataset.printIgnore;
 
-const saveAsPng = () => DomToImage.toPng(document.body, {filter: filter4Print}).then(postSaveAsPngUrl).catch(console.warn);
+const saveAsPng = () => DomToImage.toPng(document.body, { filter: filter4Print }).then(postSaveAsPngUrl).catch(console.warn);
 
 const zoomToFit = () => engine.zoomToFit();
 
@@ -91,19 +91,21 @@ const Editor = ({ displayModel: propsDisplayModel, perspectiveId, baseUri, extra
   return (
     <div className="diagram-root">
       <div className="diagram-icon-group" data-print-ignore>
-        <div className="diagram-button icon" title={l10n.t("re-layout")} onClick={relayout}>
+        <div className="diagram-button icon" title={l10n.t("Re-layout")} onClick={relayout}>
           <i className="taipy-icon-relayout"></i>
         </div>
-        <div className="diagram-button icon" title={l10n.t("refresh")} onClick={postRefreshMessage}>
+        <div className="diagram-button icon" title={l10n.t("Refresh")} onClick={postRefreshMessage}>
           <i className="codicon codicon-refresh"></i>
         </div>
-        <div className="diagram-button icon" title={isDirty ? l10n.t("save") : ""} {...(isDirty ? { onClick: postSaveMessage } : {})}>
-          <i className={"codicon codicon-" + (isDirty ? "circle-filled" : "circle-outline")}></i>
-        </div>
-        <div className="diagram-button icon" title={l10n.t("save as PNG")} onClick={saveAsPng}>
+        {perspectiveId === perspectiveRootId ? (
+          <div className="diagram-button icon" title={isDirty ? l10n.t("Save") : l10n.t("File saved")} {...(isDirty ? { onClick: postSaveMessage } : {})}>
+            <i className={"codicon codicon-" + (isDirty ? "circle-filled" : "circle-outline")}></i>
+          </div>
+        ) : null}
+        <div className="diagram-button icon" title={l10n.t("Save as PNG")} onClick={saveAsPng}>
           <i className="codicon codicon-save-as"></i>
         </div>
-        <div className="diagram-button icon" title={l10n.t("zoom to fit")} onClick={zoomToFit}>
+        <div className="diagram-button icon" title={l10n.t("Zoom to fit")} onClick={zoomToFit}>
           <i className="codicon codicon-zap"></i>
         </div>
       </div>

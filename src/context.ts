@@ -382,7 +382,7 @@ export class Context {
   private async readSymbols(document: TextDocument) {
     cleanDocumentDiagnostics(document.uri);
     const symbols = (await commands.executeCommand("vscode.executeDocumentSymbolProvider", document.uri)) as DocumentSymbol[];
-    this.symbolsByUri[document.uri.toString()] = symbols;
+    this.symbolsByUri[document.uri.toString()] = symbols || [];
     reportInconsistencies(document, symbols, null);
     return true;
   }
