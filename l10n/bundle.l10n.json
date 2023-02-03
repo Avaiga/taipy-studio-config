@@ -45,11 +45,13 @@
   "Another {0} element has the identifier {1}": "Another {0} element has the identifier {1}",
   "Using Python interpreter: {0}": "Using Python interpreter: {0}",
   "Select file": "Select file",
-  "edit": "edit",
+  "Edit": "Edit",
   "New property": "New property",
-  "re-layout": "re-layout",
-  "refresh": "refresh",
-  "save": "save",
-  "save as PNG": "save as PNG",
-  "zoom to fit": "zoom to fit"
+  "Re-layout": "Re-layout",
+  "Refresh": "Refresh",
+  "Save": "Save",
+  "File saved": "File saved",
+  "Save as PNG": "Save as PNG",
+  "Zoom to fit": "Zoom to fit",
+  "refresh": "refresh"
 }
