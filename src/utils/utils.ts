@@ -12,7 +12,7 @@
  */
 
 import { exec } from "child_process";
-import { l10n, Position, Uri, Webview, workspace } from "vscode";
+import { commands, l10n, Position, Uri, Webview, workspace } from "vscode";
 
 import { getLog } from "./logging";
 
@@ -40,18 +40,35 @@ export const getDefaultConfig = (webview: Webview, extensionUri: Uri) => {
 export const getPositionFragment = (pos: Position) => `L${pos.line + 1}C${pos.character}`;
 
 export const getFilesFromPythonPackages = (file: string, packages: string[]) => {
-  const config = workspace.getConfiguration("python");
-  const pythonPath = config.get("pythonPath", "python");
-  getLog().info(l10n.t("Using Python interpreter: {0}", pythonPath));
   return new Promise<Record<string, string>>((resolve, reject) => {
-    const cmd = `"${pythonPath}" "${Uri.joinPath(Uri.file(__dirname), "python", "find_file_in_package.py").fsPath}" "${file}" "${packages.join('" "')}"`;
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        error.code > 1 && getLog().warn(cmd, '=>', error);
-        stderr && getLog().warn(stderr.split(/\r?\n|\r|\n/g).filter(v => v).join("\n"));
-        return reject(error.code);
-      }
-      return resolve(JSON.parse(stdout));
-    });
+    commands.executeCommand("python.interpreterPath", workspace.workspaceFolders?.map(({uri}) => uri.fsPath)).then(
+      (pythonPath: string) => doGetFilesFromPythonPackage(pythonPath, file, packages, resolve, reject),
+      () => doGetFilesFromPythonPackage(workspace.getConfiguration("python").get("defaultInterpreterPath", "python"), file, packages, resolve, reject)
+    );
+  });
+};
+
+const doGetFilesFromPythonPackage = (
+  pythonPath: string,
+  file: string,
+  packages: string[],
+  resolve: (val: Record<string, string>) => void,
+  reject: (err: unknown) => void
+) => {
+  getLog().info(l10n.t("Using Python interpreter: {0}", pythonPath));
+  const cmd = `"${pythonPath}" "${Uri.joinPath(Uri.file(__dirname), "python", "find_file_in_package.py").fsPath}" "${file}" "${packages.join('" "')}"`;
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      error.code > 1 && getLog().warn(cmd, "=>", error);
+      stderr &&
+        getLog().warn(
+          stderr
+            .split(/\r?\n|\r|\n/g)
+            .filter((v) => v)
+            .join("\n")
+        );
+      return reject(error.code);
+    }
+    return resolve(JSON.parse(stdout));
   });
 };
