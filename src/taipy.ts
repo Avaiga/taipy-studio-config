@@ -11,27 +11,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { readFile } from "fs";
-import { ExtensionContext, commands, Uri, l10n } from "vscode";
+import { ExtensionContext, commands, Uri, l10n, workspace } from "vscode";
 import { Context } from "./context";
 import { getLog } from "./utils/logging";
 
-export async function activate(vsContext: ExtensionContext) {
+export const activate = async (vsContext: ExtensionContext) => {
     commands.executeCommand('setContext', 'taipy.numberOfConfigs', 0);
     Context.create(vsContext);
-    readFile(Uri.joinPath(vsContext.extensionUri, 'package.json').fsPath, {encoding: 'utf-8'}, (err, data) => {
-        if (!err) {
-            try {
-                const pkg = JSON.parse(data);
-                getLog().info(l10n.t("{0}: {1} from {2}", pkg.displayName, pkg.version, vsContext.extensionPath));
-            } catch (e) {
-                getLog().error(l10n.t("Can't parse package.json from {0}: {1}", vsContext.extensionPath, e.message || e));
-            }
-        } else {
-            getLog().error(l10n.t("Can't read package.json from {0}: {1}", vsContext.extensionPath, err.message));
+    workspace.fs.readFile(Uri.joinPath(vsContext.extensionUri, 'package.json')).then((content) => {
+        try {
+            const pkg = JSON.parse(Buffer.from(content).toString('utf8'));
+            getLog().info(l10n.t("{0}: {1} from {2}", pkg.displayName, pkg.version, vsContext.extensionPath));
+        } catch (e) {
+            getLog().error(l10n.t("Can't parse package.json from {0}: {1}", vsContext.extensionPath, e.message || e));
         }
-    });
-}
+    }, (err) => getLog().error(l10n.t("Can't read package.json from {0}: {1}", vsContext.extensionPath, err.message)));
+};
 
 // Extension is deactivated
-export function deactivate() {}
+export const deactivate = () => {};

@@ -15,19 +15,18 @@ import {
   commands,
   DocumentSymbol,
   ExtensionContext,
-  l10n,
-  Position,
+  FileType,
+  FileWillDeleteEvent,
+  FileWillRenameEvent,
   Range,
   TextDocument,
   TextDocumentChangeEvent,
-  TextEdit,
   TextEditorRevealType,
   TreeItem,
   TreeView,
   Uri,
   window,
   workspace,
-  WorkspaceEdit,
 } from "vscode";
 import { JsonMap } from "@iarna/toml";
 
@@ -35,7 +34,7 @@ import { ConfigFilesView } from "./views/ConfigFilesView";
 import { revealConfigNodeCmd, selectConfigFileCmd, selectConfigNodeCmd } from "./utils/commands";
 import { CONFIG_DETAILS_ID, TAIPY_STUDIO_SETTINGS_NAME } from "./utils/constants";
 import { ConfigDetailsView } from "./providers/ConfigDetails";
-import { configFilePattern } from "./utils/utils";
+import { configFileExt } from "./utils/utils";
 import {
   ConfigItem,
   ConfigNodesProvider,
@@ -53,13 +52,13 @@ import { ConfigEditorProvider } from "./editors/ConfigEditor";
 import { cleanDocumentDiagnostics, reportInconsistencies } from "./utils/errors";
 import { ValidateFunction } from "ajv/dist/2020";
 import { getValidationFunction } from "./schema/validation";
-import { getDescendantProperties, getParentType, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "./utils/symbols";
+import { getSymbol } from "./utils/symbols";
 import { PythonCodeActionProvider } from "./providers/PythonCodeActionProvider";
 import { PythonLinkProvider } from "./providers/PythonLinkProvider";
-import { getNodeNameValidationFunction } from "./utils/pythonSymbols";
 import { getLog } from "./utils/logging";
 
-const configNodeKeySort = (a: DocumentSymbol, b: DocumentSymbol) => (a === b ? 0 : a.name === "default" ? -1 : b.name === "default" ? 1 : a.name > b.name ? 1 : -1);
+const configNodeKeySort = (a: DocumentSymbol, b: DocumentSymbol) =>
+  a === b ? 0 : a.name === "default" ? -1 : b.name === "default" ? 1 : a.name > b.name ? 1 : -1;
 
 interface NodeSelectionCache {
   fileUri?: string;
@@ -117,18 +116,13 @@ export class Context {
     vsContext.subscriptions.push(window.registerWebviewViewProvider(CONFIG_DETAILS_ID, this.configDetailsView));
     // Document change listener
     workspace.onDidChangeTextDocument(this.onDocumentChanged, this, vsContext.subscriptions);
-    // file system watcher
-    const fileSystemWatcher = workspace.createFileSystemWatcher(configFilePattern);
-    fileSystemWatcher.onDidChange(this.onFileChange, this);
-    fileSystemWatcher.onDidCreate(this.onFileCreate, this);
-    fileSystemWatcher.onDidDelete(this.onFileDelete, this);
-    vsContext.subscriptions.push(fileSystemWatcher);
-    // directory watcher
-    const directoriesWatcher = workspace.createFileSystemWatcher("**/");
-    directoriesWatcher.onDidChange(this.onFileChange, this);
-    directoriesWatcher.onDidCreate(this.onFileCreate, this);
-    directoriesWatcher.onDidDelete(this.onFileDelete, this);
-    vsContext.subscriptions.push(directoriesWatcher);
+    // Workspace file system watcher
+    vsContext.subscriptions.push(workspace.onDidCreateFiles(this.onFilesChanged, this));
+    vsContext.subscriptions.push(workspace.onDidRenameFiles(this.onFilesChanged, this));
+    vsContext.subscriptions.push(workspace.onDidDeleteFiles(this.onFilesChanged, this));
+    vsContext.subscriptions.push(workspace.onWillRenameFiles(this.onFilesWillBeRenamed, this));
+    vsContext.subscriptions.push(workspace.onWillDeleteFiles(this.onFilesWillBeDeleted, this));
+    vsContext.subscriptions.push(workspace.onDidDeleteFiles(this.onFilesChanged, this));
     // Json schema validator
     getValidationFunction()
       .then((fn) => (this.validateSchema = fn))
@@ -191,24 +185,67 @@ export class Context {
     });
   }
 
-  private async onFileChange(uri: Uri): Promise<void> {
-    if (uri && this.configFileUri?.toString() === uri.toString()) {
-      if (await this.readSymbols(await this.getDocFromUri(uri))) {
-        this.treeProviders.forEach((p) => p.refresh(this, uri));
+  private onFilesChanged() {
+    this.configFilesView.refresh(this.configFileUri?.toString());
+  }
+
+  private onFilesWillBeRenamed(evt: FileWillRenameEvent) {
+    evt.files.forEach(({oldUri, newUri}) => evt.waitUntil(workspace.fs.stat(oldUri).then((stat) => {
+      if (stat.type === FileType.Directory) {
+        evt.waitUntil(this.directoryWillBeHandled(evt, oldUri, newUri, this.fileWillBeRenamed));
+      } else {
+        this.fileWillBeRenamed(oldUri, newUri);
+      }
+    })));
+  }
+
+  private fileWillBeRenamed(oldUri: Uri, newUri: Uri) {
+    if (oldUri.path.endsWith(configFileExt) || newUri.path.endsWith(configFileExt)) {
+      const wasSelected = this.configFileUri?.toString() === oldUri.toString();
+      if (wasSelected) {
+        this.configFileUri = newUri;
+      }
+      if (oldUri.toString() in this.symbolsByUri) {
+        this.symbolsByUri[newUri.toString()] = this.symbolsByUri[oldUri.toString()];
+      }
+      if (wasSelected) {
+        this.treeProviders.forEach((p) => p.refresh(this, newUri));
       }
     }
   }
 
-  private async onFileCreate(uri: Uri): Promise<void> {
-    this.configFilesView.refresh(this.configFileUri?.toString());
+  private directoryWillBeHandled(evt: FileWillDeleteEvent | FileWillRenameEvent, uri: Uri, newUri: Uri | undefined, fileHandling: (uri: Uri, newUri?: Uri) => void) {
+    return workspace.fs.readDirectory(uri).then(entries => entries.forEach(([fileName, fileType]) => {
+      if (fileType === FileType.Directory) {
+        evt.waitUntil(this.directoryWillBeHandled(evt, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName), fileHandling));
+      } else {
+        fileHandling.call(this, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName));
+      }
+    }), console.log);
   }
 
-  private async onFileDelete(uri: Uri): Promise<void> {
-    if (isUriEqual(uri, this.configFileUri)) {
-      this.configFileUri = undefined;
-      this.treeProviders.forEach((p) => p.refresh(this));
+  private onFilesWillBeDeleted(evt: FileWillDeleteEvent) {
+    evt.files.forEach(uri => evt.waitUntil(workspace.fs.stat(uri).then((stat) => {
+      if (stat.type === FileType.Directory) {
+        evt.waitUntil(this.directoryWillBeHandled(evt, uri, undefined, this.fileWillBeDeleted));
+      } else {
+        this.fileWillBeDeleted(uri);
+      }
+    })));
+  }
+
+  private fileWillBeDeleted(uri:  Uri) {
+    if (uri.path.endsWith(configFileExt)) {
+      if (this.configFileUri?.toString() === uri.toString()) {
+        this.configFileUri = undefined;
+        this.treeProviders.forEach((p) => p.refresh(this));
+      }
+      if (this.selectionCache.fileUri === uri.toString()) {
+        delete this.selectionCache.fileUri;
+        this.vsContext.workspaceState.update(Context.cacheName, this.selectionCache);
+      }
+      delete this.symbolsByUri[uri.toString()];
     }
-    this.configFilesView.refresh(this.configFileUri?.toString());
   }
 
   getConfigUri() {
@@ -247,11 +284,12 @@ export class Context {
     this.configDetailsView.setEmptyContent();
   }
 
-  updateSelectionCache(nodeType: string, oldNodeName: string, nodeName: string) {
+  updateElement(nodeType: string, oldNodeName: string, nodeName: string) {
     if (this.selectionCache[nodeType] === oldNodeName) {
       this.selectionCache[nodeType] = nodeName;
       this.vsContext.workspaceState.update(Context.cacheName, this.selectionCache);
     }
+    this.configEditorProvider.updateElement(nodeType, oldNodeName, nodeName);
   }
 
   private async selectConfigNode(nodeType: string, name: string, configNode: object, uri: Uri, reveal = true, fromInEditor = true): Promise<void> {
@@ -315,7 +353,7 @@ export class Context {
     commands.executeCommand("vscode.openWith", getPerspectiveUri(Uri.parse(item.baseUri, true), item.perspective), ConfigEditorProvider.viewType);
   }
 
-  private showPropertyLink(item: { baseUri: string; }) {
+  private showPropertyLink(item: { baseUri: string }) {
     commands.executeCommand("vscode.open", Uri.parse(item.baseUri, true));
   }
 
