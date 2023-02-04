@@ -27,6 +27,7 @@ import {
   workspace,
   WorkspaceEdit,
 } from "vscode";
+import { MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
 import { getPythonSuffix, getUnsuffixedName } from "../utils/symbols";
 
 export class PythonCodeActionProvider implements CodeActionProvider {
@@ -58,7 +59,7 @@ export class PythonCodeActionProvider implements CodeActionProvider {
         parts.pop();
         const pythonUri = code.target
           ? code.target
-          : Uri.joinPath(workspace.workspaceFolders[0].uri, ...parts, pythonFile === "__main__" ? mainFile : `${pythonFile}.py`);
+          : Uri.joinPath(workspace.workspaceFolders[0].uri, ...parts, pythonFile === MAIN_PYTHON_MODULE ? mainFile : `${pythonFile}.py`);
         const codeAction = new CodeAction(
           l10n.t("Create Python {0} '{1}' in {2}", getPythonSuffix(isFunction), pythonSymbol, workspace.asRelativePath(pythonUri)),
           CodeActionKind.QuickFix

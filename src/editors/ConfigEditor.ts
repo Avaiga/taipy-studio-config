@@ -348,7 +348,13 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   }
 
   private refreshVisibleContext() {
-    commands.executeCommand('setContext', 'taipy.config.diagram.visible', Object.values(this.panelsByUri).some(val => Object.values(val).some(panels => panels.some(panel => panel.visible))));
+    commands.executeCommand('setContext', 'taipy.config.diagram.visible', Object.values(this.panelsByUri).some(val => Object.values(val).some(panels => panels.some(panel => {
+      try{
+        return panel.visible;
+      } catch {
+        return false;
+      }
+    }))));
   }
 
   private async saveDocument(document: TextDocument) {

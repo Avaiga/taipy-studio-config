@@ -19,7 +19,7 @@ import { getArrayFromText, getDescendantProperties, getPythonSuffix, getSymbol, 
 import { getChildType } from "../../shared/childtype";
 import { DataNode, Pipeline, Task } from "../../shared/names";
 import { getPythonReferences } from "../schema/validation";
-import { getMainPythonUri } from "./pythonSymbols";
+import { getMainPythonUri, MAIN_PYTHON_MODULE } from "./pythonSymbols";
 import { getLog } from "./logging";
 
 const diagnoticsCollection = languages.createDiagnosticCollection("taipy-config-symbol");
@@ -122,7 +122,7 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
     for (const ps of pythonSymbols) {
       const parts = ps.split(".");
       parts.pop();
-      const uris = parts[0] === "__main__" ? [mainUri] : await workspace.findFiles(`${parts.join("/")}.py`, null, 1);
+      const uris = parts[0] === MAIN_PYTHON_MODULE ? [mainUri] : await workspace.findFiles(`${parts.join("/")}.py`, null, 1);
       if (!uris.length) {
         pythonSymbol2TomlSymbols[ps].symbols.forEach((propSymbol) =>
           diagnostics.push({
