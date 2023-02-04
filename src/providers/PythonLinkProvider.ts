@@ -26,7 +26,7 @@ import {
 
 import { Context } from "../context";
 import { getPythonReferences } from "../schema/validation";
-import { getMainPythonUri } from "../utils/pythonSymbols";
+import { getMainPythonUri, MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
 import { getUnsuffixedName } from "../utils/symbols";
 import { getPositionFragment } from "../utils/utils";
 
@@ -71,7 +71,7 @@ export class PythonLinkProvider implements DocumentLinkProvider<DocumentLink> {
       for (const ps of pythonSymbols) {
         const parts = ps.split(".");
         parts.pop();
-        const uris = parts[0] === "__main__" ? [mainUri] : await workspace.findFiles(`${parts.join("/")}.py`, null, 1);
+        const uris = parts[0] === MAIN_PYTHON_MODULE ? [mainUri] : await workspace.findFiles(`${parts.join("/")}.py`, null, 1);
         if (uris.length) {
           pythonSymbol2TomlSymbols[ps].uri = uris[0];
           pythonUris.push(uris[0]);

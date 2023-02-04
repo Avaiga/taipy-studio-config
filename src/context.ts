@@ -30,7 +30,7 @@ import {
 } from "vscode";
 import { JsonMap } from "@iarna/toml";
 
-import { ConfigFilesView } from "./views/ConfigFilesView";
+import { ConfigFilesView, FILE_CONTEXT } from "./views/ConfigFilesView";
 import { revealConfigNodeCmd, selectConfigFileCmd, selectConfigNodeCmd } from "./utils/commands";
 import { CONFIG_DETAILS_ID, TAIPY_STUDIO_SETTINGS_NAME } from "./utils/constants";
 import { ConfigDetailsView } from "./providers/ConfigDetails";
@@ -346,6 +346,9 @@ export class Context {
   }
 
   private showPerspective(item: TreeItem) {
+    if (item.contextValue === FILE_CONTEXT) {
+      this.configFilesView.select(item.resourceUri);
+    }
     commands.executeCommand("vscode.openWith", item.resourceUri, ConfigEditorProvider.viewType);
   }
 

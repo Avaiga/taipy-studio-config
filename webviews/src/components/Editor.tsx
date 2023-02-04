@@ -97,7 +97,7 @@ const Editor = ({ displayModel: propsDisplayModel, perspectiveId, baseUri, extra
         <div className="diagram-button icon" title={l10n.t("Refresh")} onClick={postRefreshMessage}>
           <i className="codicon codicon-refresh"></i>
         </div>
-        {perspectiveId === perspectiveRootId ? (
+        {perspectiveId !== perspectiveRootId ? (
           <div className="diagram-button icon" title={isDirty ? l10n.t("Save") : l10n.t("File saved")} {...(isDirty ? { onClick: postSaveMessage } : {})}>
             <i className={"codicon codicon-" + (isDirty ? "circle-filled" : "circle-outline")}></i>
           </div>
@@ -112,7 +112,7 @@ const Editor = ({ displayModel: propsDisplayModel, perspectiveId, baseUri, extra
       <div>{perspectiveId !== perspectiveRootId ? <h2>{perspectiveId}</h2> : ""}</div>
       <div className="diagram-icon-group" data-print-ignore>
         {getNodeTypes(perspectiveId).map((nodeType) => (
-          <div className={"diagram-button icon " + nodeType.toLowerCase()} title={nodeType} key={nodeType} data-node-type={nodeType} onClick={onCreateNode}>
+          <div className={"diagram-button icon " + nodeType.toLowerCase()} title={l10n.t("Add {0}", nodeType)} key={nodeType} data-node-type={nodeType} onClick={onCreateNode}>
             <i className={getNodeIcon(nodeType) + "-add"}></i>
           </div>
         ))}
