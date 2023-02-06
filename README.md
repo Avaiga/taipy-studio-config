@@ -7,6 +7,10 @@ These files must have the `.toml` extension.
 With Taipy Configuration Builder you can create, edit or remove any configuration element
 from a dedicated pane.
 
+You can get all the relevant information on this extension on the
+[Taipy Studio Configuration Builder](https://docs.taipy.io/en/latest/manuals/studio/config/)
+documentation page.
+
 ## Opening the Taipy Configuration Builder pane
 
 The Taipy Configuration Builder pane appears in the Visual Studio Code secondary side bar.<br/>
