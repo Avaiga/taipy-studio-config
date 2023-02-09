@@ -30,6 +30,7 @@ import {
   DocumentLink,
   QuickPickItemKind,
   Position,
+  ProgressLocation,
 } from "vscode";
 
 import { getCspScriptSrc, getDefaultConfig, getNonce, getPositionFragment, joinPaths } from "../utils/utils";
@@ -47,7 +48,7 @@ import { ACTION, EDIT_NODE_NAME, EDIT_PROPERTY, REFRESH } from "../../shared/com
 import { ViewMessage } from "../../shared/messages";
 import { Context } from "../context";
 import { getOriginalUri, isUriEqual } from "./PerpectiveContentProvider";
-import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunction, isClass } from "../schema/validation";
+import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunction, isClass, getDefaultValues } from "../schema/validation";
 import { getDescendantProperties, getNodeFromSymbol, getParentType, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
@@ -214,7 +215,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       await calculatePythonSymbols();
       const isFn = isFunction(propertyName);
       if (isFn || isClass(propertyName)) {
-        const [symbolsWithModule, modulesByUri] = await getModulesAndSymbols(isFn);
+        const [symbolsWithModule, modulesByUri] = await window.withProgress({location: ProgressLocation.Notification, title: l10n.t("Retrieving Python informations")}, () => getModulesAndSymbols(isFn));
         const currentModule = propertyValue && (propertyValue as string).split(".", 2)[0];
         let resMod: string;
         if (Object.keys(modulesByUri).length) {
@@ -273,12 +274,13 @@ export class ConfigDetailsView implements WebviewViewProvider {
       } else {
         const enumProps = await getEnumProps();
         const enumProp = enumProps.find((p) => p.toLowerCase() === propertyName?.toLowerCase());
+        const defaultValue = (await getDefaultValues(nodeType))[propertyName];
         const res = enumProp
           ? await window.showQuickPick(
-              getEnum(enumProp).map((v) => ({ label: v, picked: v === propertyValue })),
+              getEnum(enumProp).map((v) => ({ label: v, picked: v === (propertyValue || defaultValue) })),
               { canPickMany: false, title: l10n.t("Select value for {0}.{1}", nodeType, propertyName) }
             )
-          : await window.showInputBox({ title: l10n.t("Enter value for {0}.{1}", nodeType, propertyName), value: propertyValue as string });
+          : await window.showInputBox({ title: l10n.t("Enter value for {0}.{1}", nodeType, propertyName), value: (propertyValue || defaultValue) as string });
         if (res === undefined) {
           return;
         }

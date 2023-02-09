@@ -11,7 +11,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { commands, EventEmitter, l10n, ProviderResult, TreeDataProvider, TreeItem, TreeItemCollapsibleState, TreeView, Uri, window, workspace } from "vscode";
+import {
+  commands,
+  EventEmitter,
+  l10n,
+  ProviderResult,
+  TreeDataProvider,
+  TreeItem,
+  TreeItemCollapsibleState,
+  TreeView,
+  Uri,
+  window,
+  workspace,
+  WorkspaceEdit,
+} from "vscode";
 
 import { selectConfigFileCmd } from "../utils/commands";
 import { Context } from "../context";
@@ -62,18 +75,22 @@ interface FileDesc {
   dir: string;
 }
 
+const DEFAULT_CONFIG_PREFIX = "taipy-config";
+
+const configFileNameValidation = async (value: string) => {
+  if (!value) {
+    return l10n.t("File name cannot be empty.");
+  }
+  const fileName = value.endsWith(configFileExt) ? value : `${value}${configFileExt}`;
+  if ((await workspace.findFiles(fileName, null, 1))?.length) {
+    return l10n.t("File name {0} already exists.", fileName);
+  }
+  return undefined as string;
+};
+
 export class ConfigFilesView {
   private view: TreeView<ConfigFileItem>;
   private dataProvider: ConfigFilesProvider;
-  /* TODO: Timer in place to detect file renaming, that appears
-   *  like file creation followed by file removal.
-   *  The idea is to delay the creation detection to after a removal
-   *  was detected, so we can keep the original file selected, if
-   *  it was.
-   *  That kind of worked, but not always :-(
-  private timeout?: NodeJS.Timer = null;
-  private lastCreatedUri?: Uri = null;
-  */
 
   constructor(private readonly context: Context, id: string, lastSelectedUri?: string) {
     this.dataProvider = new ConfigFilesProvider();
@@ -81,19 +98,61 @@ export class ConfigFilesView {
       treeDataProvider: this.dataProvider,
     });
     this.refresh(lastSelectedUri);
-    
+
     commands.registerCommand("taipy.config.revealInExplorer", this.revealInExplorer, this);
+    commands.registerCommand("taipy.config.file.create", this.createNewConfig, this);
   }
-  
+
   private revealInExplorer(fileItem: ConfigFileItem) {
     commands.executeCommand("revealInExplorer", fileItem.resourceUri);
   }
 
-  select(uri: Uri) {
-    if (!this.view.selection?.length) {
+  private async createNewConfig() {
+    if (!workspace.workspaceFolders?.length) {
+      window.showWarningMessage(l10n.t("Cannot create a config file if you don't have at least one workspace folder."));
+      return;
+    }
+    const rootFiles = await workspace.findFiles(`*${configFileExt}`);
+    const baseName = (rootFiles || [])
+      .map((uri) => workspace.asRelativePath(uri))
+      .filter((filePath) => filePath.split("/").at(-1).startsWith(DEFAULT_CONFIG_PREFIX))
+      .sort()
+      .reduce((pv, filePath) => {
+        const baseName = filePath.split(".")[0];
+        const numSuffix = /^(.*)(-\d+)$/.exec(baseName);
+        if (numSuffix?.length === 3) {
+          return numSuffix[1] + "-" + (parseInt(numSuffix[2].substring(1), 10) + 1);
+        }
+        if (DEFAULT_CONFIG_PREFIX === baseName && pv === DEFAULT_CONFIG_PREFIX) {
+          return `${pv}-1`;
+        }
+        return pv;
+      }, DEFAULT_CONFIG_PREFIX);
+    const newName = await window.showInputBox({
+      prompt: l10n.t("Enter a new Config file name."),
+      title: l10n.t("new Config file"),
+      validateInput: configFileNameValidation,
+      value: baseName,
+    });
+    if (newName) {
+      const we = new WorkspaceEdit();
+      const newUri = Uri.joinPath(workspace.workspaceFolders[0].uri, newName.endsWith(configFileExt) ? newName : `${newName}${configFileExt}`);
+      we.createFile(newUri);
+      const self = this;
+      workspace.applyEdit(we).then((applied) => applied && setTimeout(() => self.selectAndReveal(newUri), 500));
+    }
+  }
+
+  private selectAndReveal(uri:Uri) {
+    this.context.selectConfigUri(uri);
+    this.select(uri, true);
+  }
+
+  select(uri: Uri, force = false) {
+    if (!this.view.selection?.length || force) {
       const uriStr = uri.toString();
-      const item = this.dataProvider.items.find(item => item.resourceUri.toString() === uriStr);
-      item && this.view.reveal(item, {select: true});
+      const item = this.dataProvider.items.find((item) => item.resourceUri.toString() === uriStr);
+      item && this.view.reveal(item, { select: true });
     }
   }
 

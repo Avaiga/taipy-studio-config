@@ -3,7 +3,7 @@
   "displayName": "Taipy Studio Configuration Builder",
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Taipy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homepage": "https://github.com/Avaiga/taipy-studio-config.git",
   "repository": {
     "type": "git",
@@ -24,7 +24,6 @@
   ],
   "keywords": ["Taipy", "Core", "Config"],
   "activationEvents": [
-    "onCustomEditor:taipy.config.editor.diagram",
     "onView:taipy-config",
     "onLanguage:toml",
     "workspaceContains:**/*.toml",
@@ -90,6 +89,11 @@
       {
         "command": "taipy.config.scenario.create",
         "title": "%taipy.config.commands.taipy.config.scenario.create%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "taipy.config.file.create",
+        "title": "%taipy.config.commands.taipy.config.file.create%",
         "icon": "$(add)"
       },
       {
@@ -213,7 +217,13 @@
           "command": "taipy.config.scenario.create",
           "when": "view == taipy-config-scenarios",
           "group": "navigation"
+        },
+        {
+          "command": "taipy.config.file.create",
+          "when": "view == taipy-configs",
+          "group": "navigation"
         }
+  
       ],
       "view/item/context": [
         {
