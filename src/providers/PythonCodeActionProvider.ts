@@ -27,6 +27,7 @@ import {
   workspace,
   WorkspaceEdit,
 } from "vscode";
+import { TAIPY_STUDIO_SETTINGS_CONFIG_NAME, TAIPY_STUDIO_SETTINGS_MAIN_PYTHON } from "../utils/constants";
 import { MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
 import { getPythonSuffix, getUnsuffixedName } from "../utils/symbols";
 
@@ -42,7 +43,7 @@ export class PythonCodeActionProvider implements CodeActionProvider {
   }
 
   provideCodeActions(document: TextDocument, range: Range | Selection, context: CodeActionContext, token: CancellationToken): CodeAction[] {
-    const mainFile = workspace.workspaceFolders?.length ? workspace.getConfiguration("taipyStudio.config", workspace.workspaceFolders[0]).get<string>("mainPythonFile") : "main.py";
+    const mainFile = workspace.workspaceFolders?.length ? workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_CONFIG_NAME, workspace.workspaceFolders[0]).get<string>(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON) : "main.py";
     return context.diagnostics
       .filter((diagnostic) => {
         const code = diagnostic.code as { target: Uri; value: string };

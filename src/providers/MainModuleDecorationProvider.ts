@@ -25,6 +25,7 @@ import {
   window,
   workspace,
 } from "vscode";
+import { TAIPY_STUDIO_SETTINGS_CONFIG_NAME, TAIPY_STUDIO_SETTINGS_MAIN_PYTHON } from "../utils/constants";
 import { getLog } from "../utils/logging";
 
 export class MainModuleDecorationProvider implements FileDecorationProvider {
@@ -43,21 +44,21 @@ export class MainModuleDecorationProvider implements FileDecorationProvider {
   }
 
   provideFileDecoration(uri: Uri, token: CancellationToken): ProviderResult<FileDecoration> {
-    const workspaceConfig = workspace.getConfiguration("taipyStudio.config", workspace.workspaceFolders && workspace.workspaceFolders[0]);
-    if (workspaceConfig.get<string>("mainPythonFile") === workspace.asRelativePath(uri)) {
+    const workspaceConfig = workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_CONFIG_NAME, workspace.workspaceFolders && workspace.workspaceFolders[0]);
+    if (workspaceConfig.get<string>(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON) === workspace.asRelativePath(uri)) {
       return new FileDecoration("T", l10n.t("Taipy Main module"));
     }
     return undefined;
   }
 
   private setMainModule(fileUri: Uri) {
-    const workspaceConfig = workspace.getConfiguration("taipyStudio.config", workspace.workspaceFolders && workspace.workspaceFolders[0]);
+    const workspaceConfig = workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_CONFIG_NAME, workspace.workspaceFolders && workspace.workspaceFolders[0]);
     const uris = [fileUri];
-    const oldPath = workspaceConfig.get<string>("mainPythonFile");
+    const oldPath = workspaceConfig.get<string>(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON);
     if (oldPath && workspace.workspaceFolders?.length) {
       uris.push(Uri.joinPath(workspace.workspaceFolders[0].uri, oldPath));
     }
-    workspaceConfig.update("mainPythonFile", workspace.asRelativePath(fileUri)).then(() => this._onDidChangeFileDecorations.fire(uris));
+    workspaceConfig.update(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON, workspace.asRelativePath(fileUri)).then(() => this._onDidChangeFileDecorations.fire(uris));
     getLog().info(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(fileUri)));
   }
 }
