@@ -109,7 +109,7 @@ export class ConfigFilesView {
 
   private async createNewConfig() {
     if (!workspace.workspaceFolders?.length) {
-      window.showWarningMessage(l10n.t("Cannot create a config file if you don't have at least one workspace folder."));
+      window.showWarningMessage(l10n.t("Cannot create a Config file if you don't have at least one workspace folder."));
       return;
     }
     const rootFiles = await workspace.findFiles(`*${configFileExt}`);

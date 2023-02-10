@@ -215,7 +215,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       await calculatePythonSymbols();
       const isFn = isFunction(propertyName);
       if (isFn || isClass(propertyName)) {
-        const [symbolsWithModule, modulesByUri] = await window.withProgress({location: ProgressLocation.Notification, title: l10n.t("Retrieving Python informations")}, () => getModulesAndSymbols(isFn));
+        const [symbolsWithModule, modulesByUri] = await window.withProgress({location: ProgressLocation.Notification, title: l10n.t("Retrieving Python information")}, () => getModulesAndSymbols(isFn));
         const currentModule = propertyValue && (propertyValue as string).split(".", 2)[0];
         let resMod: string;
         if (Object.keys(modulesByUri).length) {
