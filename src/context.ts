@@ -18,6 +18,7 @@ import {
   FileType,
   FileWillDeleteEvent,
   FileWillRenameEvent,
+  l10n,
   Range,
   TextDocument,
   TextDocumentChangeEvent,
@@ -91,15 +92,19 @@ export class Context {
     this.selectionCache = vsContext.workspaceState.get(Context.cacheName, {} as NodeSelectionCache);
     // Configuration files
     this.configFilesView = new ConfigFilesView(this, "taipy-configs", this.selectionCache.fileUri);
-    commands.registerCommand("taipy.config.refresh", this.configFilesView.refresh, this.configFilesView);
-    commands.registerCommand(selectConfigFileCmd, this.selectConfigUri, this);
-    // global Commands
-    commands.registerCommand(selectConfigNodeCmd, this.selectConfigNode, this);
-    commands.registerCommand(revealConfigNodeCmd, this.revealConfigNodeInEditors, this);
-    commands.registerCommand("taipy.perspective.show", this.showPerspective, this);
-    commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this);
-    commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this);
-    commands.registerCommand("taipy.config.renameNode", this.renameNode, this);
+    vsContext.subscriptions.push(
+      commands.registerCommand("taipy.config.refresh", this.configFilesView.refresh, this.configFilesView),
+      commands.registerCommand(selectConfigFileCmd, this.selectConfigUri, this),
+      // global Commands
+      commands.registerCommand(selectConfigNodeCmd, this.selectConfigNode, this),
+      commands.registerCommand(revealConfigNodeCmd, this.revealConfigNodeInEditors, this),
+      commands.registerCommand("taipy.perspective.show", this.showPerspective, this),
+      commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this),
+      commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this),
+      commands.registerCommand("taipy.config.renameNode", this.renameNode, this),
+      // file xplorer commands
+      commands.registerCommand("taipy.explorer.file.setMainModule", this.setMainModule, this)
+    );
     // Perspective Provider
     vsContext.subscriptions.push(workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider()));
     // Create Tree Views
@@ -150,6 +155,12 @@ export class Context {
   unregisterDocChangeListener(listener: (document: TextDocument) => void, thisArg: any) {
     const idx = this.docChangedListener.findIndex(([t, l]) => t === thisArg && l === listener);
     idx > -1 && this.docChangedListener.splice(idx, 1);
+  }
+
+  private setMainModule(fileUri: Uri) {
+    const workspaceConfig = workspace.getConfiguration("taipyStudio.config", workspace.workspaceFolders && workspace.workspaceFolders[0]);
+    workspaceConfig.update("mainPythonFile", workspace.asRelativePath(fileUri));
+    getLog().info(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(fileUri)));
   }
 
   private createNewElement(nodeType: string) {

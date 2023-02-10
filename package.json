@@ -105,6 +105,10 @@
         "command": "taipy.details.showLink",
         "title": "%taipy.config.commands.taipy.details.showLink%",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "taipy.explorer.file.setMainModule",
+        "title": "%taipy.config.commands.taipy.explorer.file.setMainModule%"
       }
     ],
     "customEditors": [
@@ -255,6 +259,12 @@
         {
           "command": "taipy.details.showLink",
           "when": "webviewId == 'taipy-config-details' && webviewSection == 'taipy.property'"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "taipy.explorer.file.setMainModule",
+          "when": "resourceLangId == python"
         }
       ]
     },
