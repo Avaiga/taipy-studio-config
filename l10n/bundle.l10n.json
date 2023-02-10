@@ -1,5 +1,4 @@
 {
-  "Main module file has been set up as {0} in Workspace settings": "Main module file has been set up as {0} in Workspace settings",
   "Do you really want to permanently delete {0}:{1} from the configuration?": "Do you really want to permanently delete {0}:{1} from the configuration?",
   "Cannot show a {0} entity in a {1} Perpective.": "Cannot show a {0} entity in a {1} Perpective.",
   "Looks like this panelView was disposed. {0}": "Looks like this panelView was disposed. {0}",
@@ -24,6 +23,8 @@
   "Select task": "Select task",
   "Select pipeline": "Select pipeline",
   "Select scenario": "Select scenario",
+  "Taipy Main module": "Taipy Main module",
+  "Main module file has been set up as {0} in Workspace settings": "Main module file has been set up as {0} in Workspace settings",
   "Create Python {0} '{1}' in {2}": "Create Python {0} '{1}' in {2}",
   "Trying to resolve TOML Schema Validation again.": "Trying to resolve TOML Schema Validation again.",
   "Using TOML Schema Validation from {0}": "Using TOML Schema Validation from {0}",
