@@ -62,12 +62,22 @@ import { CONFIG_EDITOR_ID, ConfigEditorProps, containerId, webviewsLibraryDir, w
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
 import { getChildType } from "../../shared/childtype";
 import { Context } from "../context";
-import { getDefaultContent, getDescendantProperties, getParentType, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName, toDisplayModel } from "../utils/symbols";
+import {
+  getDefaultContent,
+  getDescendantProperties,
+  getParentType,
+  getSectionName,
+  getSymbol,
+  getSymbolArrayValue,
+  getUnsuffixedName,
+  toDisplayModel,
+} from "../utils/symbols";
 import { Positions } from "../../shared/diagram";
 import { ConfigCompletionItemProvider } from "../providers/CompletionItemProvider";
 import { ConfigDropEditProvider } from "../providers/DocumentDropEditProvider";
 import { getNodeNameValidationFunction } from "../utils/pythonSymbols";
 import { getLog } from "../utils/logging";
+import { getDefaultValues } from "../schema/validation";
 
 interface EditorCache {
   positions?: Positions;
@@ -118,17 +128,24 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     const doc = await workspace.openTextDocument(getOriginalUri(uri));
     const nodeName = await this.getNodeName(doc, nodeType, false);
     if (nodeName) {
-      if (await this.applyEdits(doc.uri, this.doCreateElement(doc, nodeType, nodeName))) {
+      if (await this.applyEdits(doc.uri, await this.doCreateElement(doc, nodeType, nodeName))) {
         this.addNodeToActiveDiagram(nodeType, nodeName, false);
       }
     }
   }
 
-  private doCreateElement(doc: TextDocument, nodeType: string, nodeName: string, edits: TextEdit[] = []) {
+  private async doCreateElement(doc: TextDocument, nodeType: string, nodeName: string, edits: TextEdit[] = []) {
+    const content = getDefaultContent(nodeType, nodeName);
+    const defaultValues = await getDefaultValues(nodeType);
+    Object.keys(content[nodeType][nodeName])
+      .filter((key) => defaultValues[key] !== undefined)
+      .forEach((key) => {
+        content[nodeType][nodeName][key] = defaultValues[key];
+      });
     edits.push(
       TextEdit.insert(
         doc.lineCount ? doc.lineAt(doc.lineCount - 1).range.end : new Position(0, 0),
-        "\n" + stringify(getDefaultContent(nodeType, nodeName)).trimEnd() + "\n"
+        "\n" + stringify(content).trimEnd() + "\n"
       )
     );
     return edits;
@@ -152,7 +169,11 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   private async deleteConfigurationNode(item: TreeItem) {
     const nodeType = item.contextValue;
     const nodeName = item.label as string;
-    const answer = await window.showWarningMessage(l10n.t("Do you really want to permanently delete {0}:{1} from the configuration?", nodeType, nodeName.toLowerCase()), "Yes", "No");
+    const answer = await window.showWarningMessage(
+      l10n.t("Do you really want to permanently delete {0}:{1} from the configuration?", nodeType, nodeName.toLowerCase()),
+      "Yes",
+      "No"
+    );
     if (answer === "Yes") {
       const uri = getOriginalUri(item.resourceUri);
       const realDocument = await this.taipyContext.getDocFromUri(uri);
@@ -339,7 +360,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   updateElement(nodeType: string, oldNodeName: string, nodeName: string) {
     const oldPerspectiveId = `${nodeType}.${oldNodeName}`;
     const newPerspectiveId = `${nodeType}.${nodeName}`;
-    Object.values(this.panelsByUri).forEach(val => {
+    Object.values(this.panelsByUri).forEach((val) => {
       if (oldPerspectiveId in val) {
         val[newPerspectiveId] = val[oldPerspectiveId];
         delete val[oldPerspectiveId];
@@ -348,13 +369,21 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   }
 
   private refreshVisibleContext() {
-    commands.executeCommand('setContext', 'taipy.config.diagram.visible', Object.values(this.panelsByUri).some(val => Object.values(val).some(panels => panels.some(panel => {
-      try{
-        return panel.visible;
-      } catch {
-        return false;
-      }
-    }))));
+    commands.executeCommand(
+      "setContext",
+      "taipy.config.diagram.visible",
+      Object.values(this.panelsByUri).some((val) =>
+        Object.values(val).some((panels) =>
+          panels.some((panel) => {
+            try {
+              return panel.visible;
+            } catch {
+              return false;
+            }
+          })
+        )
+      )
+    );
   }
 
   private async saveDocument(document: TextDocument) {
@@ -409,15 +438,13 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       return edits;
     }
     if (linksSymbol) {
-        const newLinks = create ? [...links, getSectionName(childName)] : deleteAll ? [] : links.filter((l) => getUnsuffixedName(l) !== childName);
-        edits.push(TextEdit.replace(linksSymbol.range, stringify.value(newLinks).trimEnd()));
-        return edits;
+      const newLinks = create ? [...links, getSectionName(childName)] : deleteAll ? [] : links.filter((l) => getUnsuffixedName(l) !== childName);
+      edits.push(TextEdit.replace(linksSymbol.range, stringify.value(newLinks).trimEnd()));
+      return edits;
     } else {
       const nameSymbol = getSymbol(symbols, nodeType, nodeName);
       if (nameSymbol) {
-        edits.push(
-          TextEdit.insert(nameSymbol.range.end, property + " = " + stringify.value(create ? [getSectionName(childName)] : []) + "\n")
-        );
+        edits.push(TextEdit.insert(nameSymbol.range.end, property + " = " + stringify.value(create ? [getSectionName(childName)] : []) + "\n"));
         return edits;
       }
     }
@@ -427,7 +454,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     const symbols = this.taipyContext.getSymbols(doc.uri.toString());
     const typeSymbol = getSymbol(symbols, nodeType);
     const nodeName = (typeSymbol?.children || [])
-      .filter(s => s.name.toLowerCase().startsWith(nodeType.toLowerCase()))
+      .filter((s) => s.name.toLowerCase().startsWith(nodeType.toLowerCase()))
       .sort()
       .reduce((pv, s) => {
         if (s.name.toLowerCase() === pv.toLowerCase()) {
@@ -466,7 +493,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       this.updateExtraEntitiesInCache(perspectiveUri, `${nodeType}.${nodeName}`);
     }
     if (!nameSymbol) {
-      this.doCreateElement(realDocument, nodeType, nodeName, edits);
+      await this.doCreateElement(realDocument, nodeType, nodeName, edits);
     }
     return this.applyEdits(uri, edits);
   }
@@ -475,7 +502,8 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     const parentType = getParentType(nodeType);
     const pp = getDescendantProperties(parentType);
     const pTypeSymbol = getSymbol(symbols, parentType);
-    pTypeSymbol && pTypeSymbol.children.forEach(parentSymbol => {
+    pTypeSymbol &&
+      pTypeSymbol.children.forEach((parentSymbol) => {
         pp.forEach((property, idx) => {
           if (property && getSymbolArrayValue(realDocument, parentSymbol, property).some((n: string) => getUnsuffixedName(n) === nodeName)) {
             if (idx === 0) {

@@ -12,19 +12,20 @@
  */
 
 import { commands, DocumentSymbol, l10n, SymbolKind, Uri, window, workspace } from "vscode";
+import { TAIPY_STUDIO_SETTINGS_CONFIG_NAME, TAIPY_STUDIO_SETTINGS_MAIN_PYTHON } from "./constants";
 import { getLog } from "./logging";
 
 
 export const getMainPythonUri = async () => {
-  const workspaceConfig = workspace.getConfiguration("taipyStudio.config", workspace.workspaceFolders && workspace.workspaceFolders[0]);
-  const mainFile = workspaceConfig.get<string>("mainPythonFile");
+  const workspaceConfig = workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_CONFIG_NAME, workspace.workspaceFolders && workspace.workspaceFolders[0]);
+  const mainFile = workspaceConfig.get<string>(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON);
   const mainUris = await workspace.findFiles(mainFile, null, 1);
   let mainUri = mainUris.length ? mainUris[0] : undefined;
   if (!mainUri) {
     const pyFiles = await workspace.findFiles("*.py", null, 1);
     mainUri = pyFiles.length ? pyFiles[0] : undefined;
     if (mainUri) {
-      workspaceConfig.update("mainPythonFile", workspace.asRelativePath(mainUri));
+      workspaceConfig.update(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON, workspace.asRelativePath(mainUri));
       window.showInformationMessage(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri)));
       getLog().info(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri)));
     } else {

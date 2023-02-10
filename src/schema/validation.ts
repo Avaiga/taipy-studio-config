@@ -164,3 +164,26 @@ export const getPythonReferences = async () => {
   }
   return pythonReferences;
 };
+
+const defaultValues = {} as Record<string, Record<string, string>>;
+export const getDefaultValues = async (nodeType: string) => {
+  if (!Object.keys(defaultValues).length) {
+    const schema = await getValidationSchema() as SchemaObject;
+    Object.entries(schema.properties).forEach(([nodeType, node]: [string, any]) => {
+      defaultValues[nodeType] = {};
+      Object.entries(node.properties).forEach(([prop, v]) => {
+        if ((v as any).default) {
+          defaultValues[nodeType] = defaultValues[nodeType] || {};
+          defaultValues[nodeType][prop] = (v as any).default;
+        }
+      });
+      Object.entries(node.additionalProperties?.properties || {}).forEach(([prop, v]) => {
+        if ((v as any).default) {
+          defaultValues[nodeType] = defaultValues[nodeType] || {};
+          defaultValues[nodeType][prop] = (v as any).default;
+        }
+      });
+    });
+  }
+  return defaultValues[nodeType] || {};
+};

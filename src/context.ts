@@ -56,6 +56,7 @@ import { getSymbol } from "./utils/symbols";
 import { PythonCodeActionProvider } from "./providers/PythonCodeActionProvider";
 import { PythonLinkProvider } from "./providers/PythonLinkProvider";
 import { getLog } from "./utils/logging";
+import { MainModuleDecorationProvider } from "./providers/MainModuleDecorationProvider";
 
 const configNodeKeySort = (a: DocumentSymbol, b: DocumentSymbol) =>
   a === b ? 0 : a.name === "default" ? -1 : b.name === "default" ? 1 : a.name > b.name ? 1 : -1;
@@ -91,15 +92,19 @@ export class Context {
     this.selectionCache = vsContext.workspaceState.get(Context.cacheName, {} as NodeSelectionCache);
     // Configuration files
     this.configFilesView = new ConfigFilesView(this, "taipy-configs", this.selectionCache.fileUri);
-    commands.registerCommand("taipy.config.refresh", this.configFilesView.refresh, this.configFilesView);
-    commands.registerCommand(selectConfigFileCmd, this.selectConfigUri, this);
-    // global Commands
-    commands.registerCommand(selectConfigNodeCmd, this.selectConfigNode, this);
-    commands.registerCommand(revealConfigNodeCmd, this.revealConfigNodeInEditors, this);
-    commands.registerCommand("taipy.perspective.show", this.showPerspective, this);
-    commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this);
-    commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this);
-    commands.registerCommand("taipy.config.renameNode", this.renameNode, this);
+    vsContext.subscriptions.push(
+      commands.registerCommand("taipy.config.refresh", this.configFilesView.refresh, this.configFilesView),
+      commands.registerCommand(selectConfigFileCmd, this.selectConfigUri, this),
+      // global Commands
+      commands.registerCommand(selectConfigNodeCmd, this.selectConfigNode, this),
+      commands.registerCommand(revealConfigNodeCmd, this.revealConfigNodeInEditors, this),
+      commands.registerCommand("taipy.perspective.show", this.showPerspective, this),
+      commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this),
+      commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this),
+      commands.registerCommand("taipy.config.renameNode", this.renameNode, this),
+    );
+    // Main Module Management
+    MainModuleDecorationProvider.register(vsContext);
     // Perspective Provider
     vsContext.subscriptions.push(workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider()));
     // Create Tree Views
