@@ -70,8 +70,8 @@ export const getNodeFromSymbol = (doc: TextDocument, symbol: DocumentSymbol) => 
   return node;
 };
 
-const EXTRACT_STRINGS_RE = /['"]\s*,\s*["']/;
-const EXTRACT_ARRAY_INNER_CONTENT = /^\s*\[\s*['"](.*)['"]\s*,?\s*\]\s*$/;
+const EXTRACT_STRINGS_RE = /['"]\s*,\s*["']/s;
+const EXTRACT_ARRAY_INNER_CONTENT = /^\s*\[\s*['"](.*)['"]\s*,?\s*\]\s*$/s;
 
 export const getArrayFromText = (text: string) => {
   if (text.trim()) {
@@ -164,3 +164,13 @@ export const getSectionName = (name: string, withSection?: boolean, sectionName 
 };
 
 export const getPythonSuffix = (isFunction: boolean) => (isFunction ? "function" : "class");
+
+export const extractModule = (modSmb: string) => {
+  if (modSmb) {
+    const p = modSmb.lastIndexOf(".");
+    if (p > -1) {
+      return modSmb.substring(0, p);
+    }
+  }
+  return "";
+};
