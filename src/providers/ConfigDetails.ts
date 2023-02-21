@@ -49,7 +49,7 @@ import { ViewMessage } from "../../shared/messages";
 import { Context } from "../context";
 import { getOriginalUri, isUriEqual } from "./PerpectiveContentProvider";
 import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunction, isClass, getDefaultValues } from "../schema/validation";
-import { getDescendantProperties, getNodeFromSymbol, getParentType, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
+import { extractModule, getDescendantProperties, getNodeFromSymbol, getParentType, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
 import { checkPythonIdentifierValidity, getCreateFunctionOrClassLabel, getModulesAndSymbols, getNodeNameValidationFunction, MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
@@ -216,7 +216,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       const isFn = isFunction(propertyName);
       if (isFn || isClass(propertyName)) {
         const [symbolsWithModule, modulesByUri] = await window.withProgress({location: ProgressLocation.Notification, title: l10n.t("Retrieving Python information")}, () => getModulesAndSymbols(isFn));
-        const currentModule = propertyValue && (propertyValue as string).split(".", 2)[0];
+        const currentModule = extractModule(propertyValue as string);
         let resMod: string;
         if (Object.keys(modulesByUri).length) {
           const items = Object.entries(modulesByUri).map(
@@ -241,10 +241,10 @@ export class ConfigDetailsView implements WebviewViewProvider {
         if (!resMod) {
           return;
         }
-        const symbols = symbolsWithModule.filter((s) => s.split(".", 2)[0] === resMod);
+        const symbols = symbolsWithModule.filter((s) => s.startsWith(resMod + "."));
         let resFunc: string;
         if (symbols.length) {
-          const currentfunc = propertyValue && propertyValue.includes(".") && `${resMod}.${(propertyValue as string).split(".", 2)[1]}`;
+          const currentfunc = propertyValue && propertyValue.includes(".") && (propertyValue as string).startsWith(resMod + ".") && (propertyValue as string).substring(resMod.length + 1);
           const items = symbols.map((fn) => ({ label: fn, picked: fn === currentfunc } as QuickPickItem & { create?: boolean }));
           items.push({ label: "", kind: QuickPickItemKind.Separator });
           items.push({ label: getCreateFunctionOrClassLabel(isFn), create: true });
