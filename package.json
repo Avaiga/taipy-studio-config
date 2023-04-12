@@ -22,7 +22,11 @@
     "Linters",
     "Other"
   ],
-  "keywords": ["Taipy", "Core", "Config"],
+  "keywords": [
+    "Taipy",
+    "Core",
+    "Config"
+  ],
   "activationEvents": [
     "onView:taipy-config",
     "onLanguage:toml",
@@ -227,7 +231,6 @@
           "when": "view == taipy-configs",
           "group": "navigation"
         }
-  
       ],
       "view/item/context": [
         {
@@ -349,8 +352,7 @@
           "type": "string",
           "default": "main.py",
           "description": "%taipy.config.settings.config.mainPythonFile.desc%"
-        }
-        ,
+        },
         "taipyStudio.config.useSchemaFromPackage": {
           "type": "boolean",
           "default": true,
@@ -381,19 +383,19 @@
     "@types/vscode": "^1.73.1",
     "@typescript-eslint/eslint-plugin": "^5.12.1",
     "@typescript-eslint/parser": "^5.12.1",
-    "@vscode/l10n-dev": "^0.0.22",
+    "@vscode/l10n-dev": "^0.0.24",
     "@vscode/test-electron": "^2.1.2",
     "@vscode/vsce": "^2.16.0",
-    "concurrently": "^7.4.0",
+    "concurrently": "^8.0.1",
     "copy-webpack-plugin": "^11.0.0",
     "dotenv-webpack": "^8.0.1",
     "electron": "^22.0.0",
     "eslint": "^8.9.0",
-    "glob": "^8.0.3",
+    "glob": "^10.0.0",
     "mocha": "^10.0.0",
     "path": "^0.12.7",
     "ts-loader": "^9.2.6",
-    "typescript": "^4.8.4",
+    "typescript": "^5.0.4",
     "webpack": "^5.69.1",
     "webpack-cli": "^5.0.0"
   },
