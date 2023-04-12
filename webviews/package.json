@@ -1,7 +1,7 @@
 {
   "name": "taipy-studio-webviews",
   "description": "Components for Visual Studio Code extension for Taipy",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "scripts": {
     "build": "webpack --mode development",
     "prod": "webpack --mode production",
