@@ -155,7 +155,7 @@
         {
           "id": "taipy-config-pipelines",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-pipelines%",
-          "when": "taipy.config.numberOfConfigFiles>0",
+          "when": "taipy.config.numberOfConfigFiles > 0",
           "visibility": "collapsed"
         },
         {
