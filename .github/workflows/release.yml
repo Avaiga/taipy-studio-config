@@ -48,7 +48,7 @@ jobs:
               )
           """ > /tmp/check.py
           python /tmp/check.py "${{ steps.extract_branch.outputs.branch }}"
-      
+
   release:
     needs: [verify-package-version]
     timeout-minutes: 20
