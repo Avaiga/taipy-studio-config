@@ -59,7 +59,10 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: get core latest version tag
-        run: echo "core_version=$(git tag -l --sort=-committerdate | head -1)" >> $GITHUB_OUTPUT
+        run: |
+            git tag -l --sort=-committerdate | head -1
+            echo "core_version=$(git tag -l --sort=-committerdate | head -1)"
+            echo "core_version=$(git tag -l --sort=-committerdate | head -1)" >> $GITHUB_OUTPUT
         id: extract_core_version
 
       - name: Download core schema file
