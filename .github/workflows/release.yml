@@ -59,6 +59,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: get core latest version tag
+        shell: bash
+        run: echo "##[set-output name=core_version;]$(echo $(git tag -l --sort=-committerdate | head -1))"
+        id: extract_core_version
+
+      - name: Download core schema file
+        run: curl https://raw.githubusercontent.com/Avaiga/taipy-core/${{ steps.extract_core_version.outputs.core_version }}/src/taipy/core/config/config.schema.json -o schemas/core.config.schema.json
+
       - name: Extract commit hash
         shell: bash
         run: echo "##[set-output name=hash;]$(echo $(git rev-parse HEAD))"
