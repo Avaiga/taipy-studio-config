@@ -1,0 +1,56 @@
+name: Create Github Development Release
+
+on: workflow_dispatch
+
+jobs:
+  release:
+    timeout-minutes: 20
+    name: Release Dev package
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get version from package
+        id: get_version
+        run: |
+          echo """
+          import json, sys
+          version = "dev-latest"
+          with open('package.json') as version_file:
+              version = json.load(version_file)['version']
+          print(f'version={version}')
+          """ > /tmp/check1.py
+          python /tmp/check1.py >> $GITHUB_OUTPUT
+
+      - name: get core latest version tag
+        run: echo "core_version=$(git ls-remote --tags --refs --sort='-version:refname' https://github.com/Avaiga/taipy-core [0-9]\* | head -1 | cut --delimiter='/' --field=3)" >> $GITHUB_OUTPUT
+        id: extract_core_version
+
+      - name: Download core schema file
+        working-directory: ./schemas
+        run: |
+            [ "${{ steps.extract_core_version.outputs.core_version }}" != "" ]
+            curl --fail-with-body https://raw.githubusercontent.com/Avaiga/taipy-core/${{ steps.extract_core_version.outputs.core_version }}/src/taipy/core/config/config.schema.json -o core.config.schema.json
+
+      - name: setup node version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install webviews node_modules
+        working-directory: ./webviews
+        run: npm ci --include=dev
+
+      - name: Install node_modules
+        run: npm ci --include=dev
+
+      - name: Build the package
+        run: npm run package
+
+      - name: Create/update release and tag
+        run: |
+            gh release delete dev-${{ steps.get_version.outputs.version }} -y || true
+            gh release create dev-${{ steps.get_version.outputs.version }} ./studio-config-${{ steps.get_version.outputs.version }}.vsix --draft --prerelease --notes "Release Draft ${{ steps.get_version.outputs.version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

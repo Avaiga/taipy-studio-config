@@ -26,6 +26,7 @@
   "Using TOML Schema Validation from {0}": "Using TOML Schema Validation from {0}",
   "Validation Schema not found in package. {0}": "Validation Schema not found in package. {0}",
   "Using embedded TOML Schema Validation": "Using embedded TOML Schema Validation",
+  "Using non fetched embedded TOML Schema Validation": "Using non fetched embedded TOML Schema Validation",
   "Create Python {0} '{1}' in {2}": "Create Python {0} '{1}' in {2}",
   "Taipy Main module": "Taipy Main module",
   "Select data node": "Select data node",

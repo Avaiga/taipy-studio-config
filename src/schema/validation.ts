@@ -49,8 +49,13 @@ export const getValidationSchema = async () => {
       }
     }
     if (!validationSchema) {
-      validationSchema = await import("../../schemas/config.schema.json");
-      getLog().info(l10n.t("Using embedded TOML Schema Validation"));
+      try {
+        validationSchema = await import("../../schemas/core.config.schema.json");
+        getLog().info(l10n.t("Using embedded TOML Schema Validation"));
+      } catch {
+        validationSchema = await import("../../schemas/config.schema.json");
+        getLog().info(l10n.t("Using non fetched embedded TOML Schema Validation"));
+      }
     }
   }
   return validationSchema;
