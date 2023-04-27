@@ -60,9 +60,7 @@ jobs:
 
       - name: get core latest version tag
         run: |
-            git tag -l --sort=-committerdate | head -1
-            echo "core_version=$(git tag -l --sort=-committerdate | head -1)"
-            echo "core_version=$(git tag -l --sort=-committerdate | head -1)" >> $GITHUB_OUTPUT
+            echo "core_version=$(git ls-remote --tags --refs --sort='-version:refname' https://github.com/Avaiga/taipy-core [0-9]\* | head -1 | cut --delimiter='/' --field=3)" >> $GITHUB_OUTPUT
         id: extract_core_version
 
       - name: Download core schema file
