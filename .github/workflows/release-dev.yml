@@ -1,4 +1,4 @@
-name: Create Github Development Release
+name: Create Github Development Draft Pre-Release
 
 on: workflow_dispatch
 
