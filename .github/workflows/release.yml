@@ -19,8 +19,7 @@ jobs:
           python-version: 3.8
 
       - name: Extract branch name
-        shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
         id: extract_branch
 
       - name: Ensure package version is properly set
@@ -49,7 +48,7 @@ jobs:
               )
           """ > /tmp/check.py
           python /tmp/check.py "${{ steps.extract_branch.outputs.branch }}"
-
+      
   release:
     needs: [verify-package-version]
     timeout-minutes: 20
@@ -60,20 +59,35 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: get core latest version tag
-        shell: bash
-        run: echo "##[set-output name=core_version;]$(echo $(git tag -l --sort=-committerdate | head -1))"
+        run: echo "core_version=$(git ls-remote --tags --refs --sort='-version:refname' https://github.com/Avaiga/taipy-core [0-9]\* | head -1 | cut --delimiter='/' --field=3)" >> $GITHUB_OUTPUT
         id: extract_core_version
 
       - name: Download core schema file
-        run: curl https://raw.githubusercontent.com/Avaiga/taipy-core/${{ steps.extract_core_version.outputs.core_version }}/src/taipy/core/config/config.schema.json -o schemas/core.config.schema.json
+        working-directory: ./schemas
+        run: |
+            [ "${{ steps.extract_core_version.outputs.core_version }}" != "" ]
+            curl --fail-with-body https://raw.githubusercontent.com/Avaiga/taipy-core/${{ steps.extract_core_version.outputs.core_version }}/src/taipy/core/config/config.schema.json -o core.config.schema.json
 
       - name: Extract commit hash
-        shell: bash
-        run: echo "##[set-output name=hash;]$(echo $(git rev-parse HEAD))"
+        run: echo "hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
         id: extract_hash
 
+      - name: setup node version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install webviews node_modules
+        working-directory: ./webviews
+        run: npm ci --include=dev
+
+      - name: Install node_modules
+        run: npm ci --include=dev
+
+      - name: Build the package
+        run: npm run package
+
       - name: Create/update release and tag
-        run: |
-            gh release create ${{ github.event.inputs.version }} --target ${{ steps.extract_hash.outputs.hash }} --notes "Release created using Github Workflows"
+        run: gh release create ${{ github.event.inputs.version }} ./studio-config-${{ github.event.inputs.version }}.vsix --target ${{ steps.extract_hash.outputs.hash }} --notes "Release ${{ github.event.inputs.version }} created using Github Workflows"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
