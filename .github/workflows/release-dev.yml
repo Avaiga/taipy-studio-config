@@ -15,11 +15,10 @@ jobs:
         id: get_version
         run: |
           echo """
-          import json, sys
-          version = "dev-latest"
+          import json
           with open('package.json') as version_file:
               version = json.load(version_file)['version']
-          print(f'version={version}')
+              print(f'version={version}', end='')
           """ > /tmp/check1.py
           python /tmp/check1.py >> $GITHUB_OUTPUT
 
