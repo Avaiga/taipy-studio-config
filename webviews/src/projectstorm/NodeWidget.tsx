@@ -14,9 +14,9 @@
 import { useCallback } from "react";
 import { DiagramEngine } from "@projectstorm/react-diagrams-core";
 import styled from "@emotion/styled";
-import { DefaultNodeModel, DefaultPortLabel, DefaultPortModel } from "@projectstorm/react-diagrams";
+import { DefaultNodeModel, DefaultPortModel, PortWidget } from "@projectstorm/react-diagrams";
 
-import { getNodeContext } from "../utils/diagram";
+import { IN_PORT_NAME, getNodeContext } from "../utils/diagram";
 import { getNodeIcon } from "../utils/config";
 
 namespace S {
@@ -28,10 +28,7 @@ namespace S {
     overflow: visible;
     border: solid 2px ${(p) => (p.selected ? "rgb(0,192,255)" : "black")};
   `;
-/*
-    font-family: sans-serif;
-    font-size: 11px;
-*/
+
   export const Title = styled.div`
     background: rgba(0, 0, 0, 0.3);
     display: flex;
@@ -42,6 +39,11 @@ namespace S {
   export const TitleName = styled.div`
     flex-grow: 1;
     padding: 5px 5px;
+  `;
+
+  export const SubTitleName = styled.span`
+    font-size: smaller;
+    padding-left: 0.7em;
   `;
 
   export const TitleIcon = styled.div`
@@ -57,11 +59,28 @@ namespace S {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    &:first-of-type {
-      margin-right: 10px;
+  `;
+
+  export const OutPortLabel = styled.div`
+    display: flex;
+    align-items: end;
+    justify-content: end;
+    & svg {
+      display: block;
     }
-    &:only-child {
-      margin-right: 0px;
+    & i:hover {
+      background: rgb(192, 255, 0);
+    }
+  `;
+
+  export const InPortLabel = styled.div`
+    display: flex;
+    align-items: end;
+    & svg {
+      display: block;
+    }
+    & i:hover {
+      background: rgb(192, 255, 0);
     }
   `;
 }
@@ -74,9 +93,20 @@ interface NodeProps {
 
 const NodeWidget = ({ node, baseUri, engine }: NodeProps) => {
   const generatePort = useCallback(
-    (port: DefaultPortModel) => {
-      return <DefaultPortLabel engine={engine} port={port} key={port.getID()} />;
-    },
+    (port: DefaultPortModel) =>
+      port.getName() === IN_PORT_NAME ? (
+        <S.InPortLabel>
+          <PortWidget engine={engine} port={port} key={port.getID()}>
+            <i className="taipy-icon-input"></i>
+          </PortWidget>
+        </S.InPortLabel>
+      ) : (
+        <S.OutPortLabel>
+          <PortWidget engine={engine} port={port} key={port.getID()}>
+            <i className="taipy-icon-output"></i>
+          </PortWidget>
+        </S.OutPortLabel>
+      ),
     [engine]
   );
 
