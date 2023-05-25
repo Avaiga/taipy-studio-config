@@ -25,7 +25,8 @@
   },
   "dependencies": {
     "@projectstorm/react-diagrams": "^7.0.1",
-    "@vscode/l10n": "^0.0.13",
+    "@vscode/l10n": "^0.0.14",
+    "@vscode/webview-ui-toolkit": "^1.2.2",
     "debounce": "^1.2.1",
     "dom-to-image-more": "^3.1.1",
     "fast-deep-equal": "^3.1.3",

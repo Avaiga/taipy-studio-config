@@ -41,10 +41,10 @@ export const getValidationSchema = async () => {
         const schemas = await getFilesFromPythonPackages("config.schema.json", ["taipy.core"]);
         if (schemas && schemas["taipy.core"]) {
           const content = await workspace.fs.readFile(Uri.file(schemas["taipy.core"]));
-          validationSchema = JSON.parse(Buffer.from(content).toString('utf8'));
+          validationSchema = JSON.parse(Buffer.from(content).toString("utf8"));
           getLog().info(l10n.t("Using TOML Schema Validation from {0}", schemas["taipy.core"]));
         }
-      } catch(e) {
+      } catch (e) {
         getLog().warn(l10n.t("Validation Schema not found in package. {0}", e.message || e));
       }
     }
@@ -100,9 +100,9 @@ const properties = {} as Record<string, string[]>;
 export const getProperties = async (nodeType: string) => {
   if (!Object.keys(properties).length) {
     const schema = (await getValidationSchema()) as SchemaObject;
-    Object.entries(schema.properties).forEach(([k, v]: [string, any]) => {
-      properties[k] = Object.keys(v.properties);
-      properties[k].push(...Object.keys(v.additionalProperties?.properties || {}).filter((p) => p && p !== "if" && p !== "then" && p !== "else"));
+    Object.entries(schema.properties || {}).forEach(([k, v]: [string, any]) => {
+      properties[k] = Object.keys(v.properties || {});
+      properties[k].push(...Object.keys(v.additionalProperties?.properties || {}).filter((key) => key && key !== "if" && key !== "then" && key !== "else"));
     });
   }
   return properties[nodeType] || [];
@@ -173,7 +173,7 @@ export const getPythonReferences = async () => {
 const defaultValues = {} as Record<string, Record<string, string>>;
 export const getDefaultValues = async (nodeType: string) => {
   if (!Object.keys(defaultValues).length) {
-    const schema = await getValidationSchema() as SchemaObject;
+    const schema = (await getValidationSchema()) as SchemaObject;
     Object.entries(schema.properties).forEach(([nodeType, node]: [string, any]) => {
       defaultValues[nodeType] = {};
       Object.entries(node.properties).forEach(([prop, v]) => {

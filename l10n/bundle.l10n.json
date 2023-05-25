@@ -34,6 +34,9 @@
   "Select pipeline": "Select pipeline",
   "Select scenario": "Select scenario",
   "No selected element.": "No selected element.",
+  "Yes": "Yes",
+  "Do you confirm the deletion of property {0} from entity {1} in toml.": "Do you confirm the deletion of property {0} from entity {1} in toml.",
+  "No": "No",
   "Select property for {0}.": "Select property for {0}.",
   "No {0} entity in toml.": "No {0} entity in toml.",
   "Select {0} entities for {1}.{2}": "Select {0} entities for {1}.{2}",
@@ -52,5 +55,15 @@
   "Cannot show a {0} entity in a {1} Perpective.": "Cannot show a {0} entity in a {1} Perpective.",
   "Looks like this panelView was disposed. {0}": "Looks like this panelView was disposed. {0}",
   "Enter an identifier for a new {0} element.": "Enter an identifier for a new {0} element.",
-  "new {0} identifier": "new {0} identifier"
+  "new {0} identifier": "new {0} identifier",
+  "refresh": "refresh",
+  "Re-layout": "Re-layout",
+  "Refresh": "Refresh",
+  "Save": "Save",
+  "File saved": "File saved",
+  "Save as PNG": "Save as PNG",
+  "Zoom to fit": "Zoom to fit",
+  "Add {0}": "Add {0}",
+  "Delete": "Delete",
+  "Create new property": "Create new property"
 }
