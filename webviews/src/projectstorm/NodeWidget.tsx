@@ -67,10 +67,10 @@ namespace S {
     justify-content: end;
     & svg {
       display: block;
-    };
+    }
     & i:hover {
-			background: rgb(192, 255, 0);
-		}
+      background: rgb(192, 255, 0);
+    }
   `;
 
   export const InPortLabel = styled.div`
@@ -78,10 +78,10 @@ namespace S {
     align-items: end;
     & svg {
       display: block;
-    };
+    }
     & i:hover {
-			background: rgb(192, 255, 0);
-		}
+      background: rgb(192, 255, 0);
+    }
   `;
 }
 
