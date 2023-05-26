@@ -26,5 +26,6 @@ export const UPDATE_EXTRA_ENTITIES = "updateExtraEntities";
 export const REMOVE_EXTRA_ENTITIES = "removeExtraEntities";
 export const SAVE_DOCUMENT = "saveDocument";
 export const SAVE_AS_PNG_URL = "saveAsPngUrl";
+export const DELETE_PROPERTY = "deleteProperty";
 export const EDIT_PROPERTY = "editProperty";
 export const EDIT_NODE_NAME = "editNodeName";

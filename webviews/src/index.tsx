@@ -13,6 +13,7 @@
 
 import { createRoot } from "react-dom/client";
 import { config } from "@vscode/l10n";
+import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 
 import { containerId } from "../../shared/views";
 import WebView from "./webview";
@@ -29,6 +30,8 @@ declare global {
       [key: string]: unknown;
   }
 }
+
+provideVSCodeDesignSystem().register(vsCodeButton());
 
 window.taipyConfig.l10nUri && config({uri: window.taipyConfig.l10nUri});
 

@@ -44,15 +44,31 @@ import {
   NoDetailsProps,
   WebDiag,
 } from "../../shared/views";
-import { ACTION, EDIT_NODE_NAME, EDIT_PROPERTY, REFRESH } from "../../shared/commands";
+import { ACTION, DELETE_PROPERTY, EDIT_NODE_NAME, EDIT_PROPERTY, REFRESH } from "../../shared/commands";
 import { ViewMessage } from "../../shared/messages";
 import { Context } from "../context";
 import { getOriginalUri, isUriEqual } from "./PerpectiveContentProvider";
 import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunction, isClass, getDefaultValues } from "../schema/validation";
-import { extractModule, getDescendantProperties, getNodeFromSymbol, getParentType, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
+import {
+  extractModule,
+  getDescendantProperties,
+  getNodeFromSymbol,
+  getParentType,
+  getPythonSuffix,
+  getSectionName,
+  getSymbol,
+  getSymbolArrayValue,
+  getUnsuffixedName,
+} from "../utils/symbols";
 import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
-import { checkPythonIdentifierValidity, getCreateFunctionOrClassLabel, getModulesAndSymbols, getNodeNameValidationFunction, MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
+import {
+  checkPythonIdentifierValidity,
+  getCreateFunctionOrClassLabel,
+  getModulesAndSymbols,
+  getNodeNameValidationFunction,
+  MAIN_PYTHON_MODULE,
+} from "../utils/pythonSymbols";
 import { getLog } from "../utils/logging";
 
 export class ConfigDetailsView implements WebviewViewProvider {
@@ -74,14 +90,17 @@ export class ConfigDetailsView implements WebviewViewProvider {
     } as ViewMessage);
   }
 
-  setConfigNodeContent(nodeType: string, name: string, node: any, uri: Uri): void {
+  async setConfigNodeContent(nodeType: string, name: string, node: any, uri: Uri) {
     this.configUri = getOriginalUri(uri);
     this.nodeType = nodeType;
     this.nodeName = name;
+    const props = await getProperties(nodeType);
+    const allProps = !props.some((p) => !(p in node));
+    const orderedProps = allProps ? props : props.filter((prop) => prop in node);
     this.getNodeDiagnosticsAndLinks(node).then((diags) => {
       this._view?.webview.postMessage({
         viewId: DATA_NODE_DETAILS_ID,
-        props: { nodeType, nodeName: name, node, diagnostics: Object.keys(diags).length ? diags : undefined } as DataNodeDetailsProps,
+        props: { nodeType, nodeName: name, node, diagnostics: Object.keys(diags).length ? diags : undefined, orderedProps, allProps } as DataNodeDetailsProps,
       } as ViewMessage);
     });
   }
@@ -139,6 +158,9 @@ export class ConfigDetailsView implements WebviewViewProvider {
           case EDIT_PROPERTY:
             this.editProperty(e.nodeType, e.nodeName, e.propertyName, e.propertyValue);
             break;
+          case DELETE_PROPERTY:
+            this.deleteProperty(e.nodeType, e.nodeName, e.propertyName);
+            break;
           case EDIT_NODE_NAME:
             this.editNodeName(e.nodeType, e.nodeName);
             break;
@@ -169,6 +191,22 @@ export class ConfigDetailsView implements WebviewViewProvider {
         props: { nodeType: this.nodeType, nodeName: this.nodeName, node: node } as DataNodeDetailsProps,
       } as ViewMessage);
     }
+  }
+
+  private async deleteProperty(nodeType: string, nodeName: string, propertyName: string) {
+    const yes = l10n.t("Yes");
+    const res = await window.showInformationMessage(l10n.t("Do you confirm the deletion of property {0} from entity {1} in toml?", propertyName, nodeName), l10n.t("No"), yes);
+    if (res !== yes) {
+      return;
+    }
+    const symbols = this.taipyContext.getSymbols(this.configUri.toString());
+    if (!symbols) {
+      return;
+    }
+    const propertyRange = getSymbol(symbols, nodeType, nodeName, propertyName).range;
+    const we = new WorkspaceEdit();
+    we.set(this.configUri, [TextEdit.delete(propertyRange.with(propertyRange.start.with(undefined, 0)))]);
+    return workspace.applyEdit(we);
   }
 
   private async editProperty(nodeType: string, nodeName: string, propertyName?: string, propertyValue?: string | string[]) {
@@ -215,12 +253,21 @@ export class ConfigDetailsView implements WebviewViewProvider {
       await calculatePythonSymbols();
       const isFn = isFunction(propertyName);
       if (isFn || isClass(propertyName)) {
-        const [symbolsWithModule, modulesByUri] = await window.withProgress({location: ProgressLocation.Notification, title: l10n.t("Retrieving Python information")}, () => getModulesAndSymbols(isFn));
+        const [symbolsWithModule, modulesByUri] = await window.withProgress(
+          { location: ProgressLocation.Notification, title: l10n.t("Retrieving Python information") },
+          () => getModulesAndSymbols(isFn)
+        );
         const currentModule = extractModule(propertyValue as string);
         let resMod: string;
         if (Object.keys(modulesByUri).length) {
           const items = Object.entries(modulesByUri).map(
-            ([uri, module]) => ({ label: module, description: module === MAIN_PYTHON_MODULE ? uri.split("/").at(-1) : undefined, picked: module === currentModule, uri: uri } as QuickPickItem & { uri?: string; create?: boolean })
+            ([uri, module]) =>
+              ({
+                label: module,
+                description: module === MAIN_PYTHON_MODULE ? uri.split("/").at(-1) : undefined,
+                picked: module === currentModule,
+                uri: uri,
+              } as QuickPickItem & { uri?: string; create?: boolean })
           );
           items.push({ label: "", kind: QuickPickItemKind.Separator });
           items.push({ label: l10n.t("New module name"), create: true });
@@ -244,7 +291,11 @@ export class ConfigDetailsView implements WebviewViewProvider {
         const symbols = symbolsWithModule.filter((s) => s.startsWith(resMod + "."));
         let resFunc: string;
         if (symbols.length) {
-          const currentfunc = propertyValue && propertyValue.includes(".") && (propertyValue as string).startsWith(resMod + ".") && (propertyValue as string).substring(resMod.length + 1);
+          const currentfunc =
+            propertyValue &&
+            propertyValue.includes(".") &&
+            (propertyValue as string).startsWith(resMod + ".") &&
+            (propertyValue as string).substring(resMod.length + 1);
           const items = symbols.map((fn) => ({ label: fn, picked: fn === currentfunc } as QuickPickItem & { create?: boolean }));
           items.push({ label: "", kind: QuickPickItemKind.Separator });
           items.push({ label: getCreateFunctionOrClassLabel(isFn), create: true });
@@ -324,7 +375,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       return false;
     }
     const startPos = blockRange.start.translate(undefined, base + nodeType.length + 1);
-    const nameRange = blockRange.with({start: startPos, end: startPos.translate(undefined, nodeName.length)});
+    const nameRange = blockRange.with({ start: startPos, end: startPos.translate(undefined, nodeName.length) });
 
     if (this.nodeType === nodeType && this.nodeName === nodeName) {
       this.nodeName = newName;
@@ -335,13 +386,13 @@ export class ConfigDetailsView implements WebviewViewProvider {
     // Apply change to references
     const parentType = getParentType(nodeType);
     if (parentType) {
-      const descProps = getDescendantProperties(parentType).filter(p => p);
+      const descProps = getDescendantProperties(parentType).filter((p) => p);
       if (descProps.length) {
         const oldNameRegexp = new RegExp(`(['"]${getUnsuffixedName(nodeName)}['":])`);
-        getSymbol(symbols, parentType).children.forEach(parentSymbol => {
-          descProps.forEach(property => {
+        getSymbol(symbols, parentType).children.forEach((parentSymbol) => {
+          descProps.forEach((property) => {
             const propSymbol = getSymbol(parentSymbol.children, property);
-            if (getSymbolArrayValue(doc, propSymbol)?.some(val => nodeName === getUnsuffixedName(val))) {
+            if (getSymbolArrayValue(doc, propSymbol)?.some((val) => nodeName === getUnsuffixedName(val))) {
               for (let i = propSymbol.range.start.line; i <= propSymbol.range.end.line; i++) {
                 const line = doc.lineAt(i).text;
                 const res = oldNameRegexp.exec(line);

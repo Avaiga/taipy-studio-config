@@ -24,6 +24,8 @@ export interface DataNodeDetailsProps {
   nodeName: string;
   node: Record<string, string | string[]>;
   diagnostics?: Record<string, WebDiag>;
+  orderedProps: string[];
+  allProps: boolean;
 }
 
 export type WebDiag = {message?: string; severity?: number; link?: boolean; uri: string};

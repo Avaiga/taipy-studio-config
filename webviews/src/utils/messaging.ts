@@ -27,6 +27,7 @@ import {
   UPDATE_EXTRA_ENTITIES,
   EDIT_PROPERTY,
   EDIT_NODE_NAME,
+  DELETE_PROPERTY,
 } from "../../../shared/commands";
 import { Positions } from "../../../shared/diagram";
 
@@ -63,5 +64,6 @@ export const postUpdateExtraEntities = (extraEntities: string) => getVsCodeApi()
 export const postRemoveExtraEntities = (extraEntities: string) => getVsCodeApi()?.postMessage({ command: REMOVE_EXTRA_ENTITIES, extraEntities });
 export const postSaveMessage = () => getVsCodeApi()?.postMessage({ command: SAVE_DOCUMENT });
 export const postSaveAsPngUrl = (pngAsUrl: string) => getVsCodeApi()?.postMessage({ command: SAVE_AS_PNG_URL, url: pngAsUrl });
+export const postDeleteProperty = (nodeType: string, nodeName: string, propertyName?: string) => getVsCodeApi()?.postMessage({ command: DELETE_PROPERTY, nodeType, nodeName, propertyName });
 export const postEditProperty = (nodeType: string, nodeName: string, propertyName?: string, propertyValue?: string | string[]) => getVsCodeApi()?.postMessage({ command: EDIT_PROPERTY, nodeType, nodeName, propertyName, propertyValue });
 export const postEditNodeName = (nodeType: string, nodeName: string) => getVsCodeApi()?.postMessage({ command: EDIT_NODE_NAME, nodeType, nodeName });
