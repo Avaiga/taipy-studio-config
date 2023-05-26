@@ -353,6 +353,11 @@
           "default": "main.py",
           "description": "%taipy.config.settings.config.mainPythonFile.desc%"
         },
+        "taipyStudio.config.excludePythonGlobPattern": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "%taipy.config.settings.config.excludePythonGlobPattern.desc%"
+        },
         "taipyStudio.config.useSchemaFromPackage": {
           "type": "boolean",
           "default": true,

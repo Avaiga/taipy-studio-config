@@ -9,7 +9,14 @@
       "preLaunchTask": "",
       "request": "launch",
       "type": "extensionHost",
-      "sourceMaps": true
+      "sourceMaps": true,
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}"
+      ],
+      "debugWebviews": true,
+      "debugWebWorkerHost": true,
+      "enableTurboSourcemaps": true,
+      
     }
   ]
 }

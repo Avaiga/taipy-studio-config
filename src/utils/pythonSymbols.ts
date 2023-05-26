@@ -12,7 +12,7 @@
  */
 
 import { commands, DocumentSymbol, l10n, SymbolKind, Uri, window, workspace } from "vscode";
-import { TAIPY_STUDIO_SETTINGS_CONFIG_NAME, TAIPY_STUDIO_SETTINGS_MAIN_PYTHON } from "./constants";
+import { TAIPY_STUDIO_SETTINGS_CONFIG_NAME, TAIPY_STUDIO_SETTINGS_EXCLUDE_GLOB_PATTERN, TAIPY_STUDIO_SETTINGS_MAIN_PYTHON } from "./constants";
 import { getLog } from "./logging";
 
 
@@ -40,7 +40,9 @@ export const getCreateFunctionOrClassLabel = (isFunction: boolean) => isFunction
 export const MAIN_PYTHON_MODULE = "__main__";
 
 export const getModulesAndSymbols = async (isFunction: boolean): Promise<[string[], Record<string, string>]> => {
-  const pythonUris = await workspace.findFiles("**/*.py");
+  const workspaceConfig = workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_CONFIG_NAME, workspace.workspaceFolders && workspace.workspaceFolders[0]);
+  const excludePattern = workspaceConfig.get<string>(TAIPY_STUDIO_SETTINGS_EXCLUDE_GLOB_PATTERN);
+  const pythonUris = await workspace.findFiles("**/*.py", excludePattern ? excludePattern : null);
   const mainUri = await getMainPythonUri();
   const symbolsByUri = await Promise.all(
     pythonUris.map(
