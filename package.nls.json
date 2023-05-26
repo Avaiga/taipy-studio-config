@@ -43,6 +43,6 @@
     "taipy.config.settings.diagram.scenario.icon.desc": "The icon for the Scenario Diagram element.",
     "taipy.config.settings.status.timeout.desc": "The timeout for Status Bar Item (ms).",
     "taipy.config.settings.config.mainPythonFile.desc": "The name of the main Python file (module: __main__).",
-    "taipy.config.settings.config.excludePythonGlobPattern.desc": "A [glob pattern](https://code.visualstudio.com/api/references/vscode-api#GlobPattern) that defines files and folders to exclude when searching for python functions.",
+    "taipy.config.settings.config.excludePythonGlobPattern.desc": "A [glob pattern](https://code.visualstudio.com/api/references/vscode-api#GlobPattern) defining paths to exclude when searching for Python functions.",
     "taipy.config.settings.config.useSchemaFromPackage.desc": "Use configuration schemas from the taipy.* packages."
 }
