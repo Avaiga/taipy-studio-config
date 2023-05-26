@@ -195,7 +195,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
 
   private async deleteProperty(nodeType: string, nodeName: string, propertyName: string) {
     const yes = l10n.t("Yes");
-    const res = await window.showInformationMessage(l10n.t("Do you confirm the deletion of property {0} from entity {1} in toml.", propertyName, nodeName), l10n.t("No"), yes);
+    const res = await window.showInformationMessage(l10n.t("Do you confirm the deletion of property {0} from entity {1} in toml?", propertyName, nodeName), l10n.t("No"), yes);
     if (res !== yes) {
       return;
     }

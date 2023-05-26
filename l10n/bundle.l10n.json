@@ -35,7 +35,7 @@
   "Select scenario": "Select scenario",
   "No selected element.": "No selected element.",
   "Yes": "Yes",
-  "Do you confirm the deletion of property {0} from entity {1} in toml.": "Do you confirm the deletion of property {0} from entity {1} in toml.",
+  "Do you confirm the deletion of property {0} from entity {1} in toml?": "Do you confirm the deletion of property {0} from entity {1} in toml?",
   "No": "No",
   "Select property for {0}.": "Select property for {0}.",
   "No {0} entity in toml.": "No {0} entity in toml.",
