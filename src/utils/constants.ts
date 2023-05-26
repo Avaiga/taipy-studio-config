@@ -20,3 +20,4 @@ export const CONFIG_DETAILS_ID = "taipy-config-details";
 export const TAIPY_STUDIO_SETTINGS_NAME = "taipyStudio";
 export const TAIPY_STUDIO_SETTINGS_CONFIG_NAME = TAIPY_STUDIO_SETTINGS_NAME + ".config";
 export const TAIPY_STUDIO_SETTINGS_MAIN_PYTHON = "mainPythonFile";
+export const TAIPY_STUDIO_SETTINGS_EXCLUDE_GLOB_PATTERN = "excludePythonGlobPattern";
