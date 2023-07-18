@@ -57,7 +57,7 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, al
   const editNodeName = useCallback(() => postEditNodeName(nodeType, nodeName), [nodeType, nodeName]);
 
   const sortProps = useCallback(
-    ([propa, _a]: [string, any], [propb, _b]: [string, any]) => orderedProps.indexOf(propa) - orderedProps.indexOf(propb),
+    ([propa, _a]: [string, any], [propb, _b]: [string, any]) => orderedProps ? (orderedProps.indexOf(propa) - orderedProps.indexOf(propb)) : 0,
     [orderedProps]
   );
 
