@@ -357,8 +357,8 @@ export class Context {
     commands.executeCommand("vscode.openWith", item.resourceUri, ConfigEditorProvider.viewType);
   }
 
-  private showPerspectiveFromDiagram(item: { baseUri: string; perspective: string }) {
-    commands.executeCommand("vscode.openWith", getPerspectiveUri(Uri.parse(item.baseUri, true), item.perspective), ConfigEditorProvider.viewType);
+  private showPerspectiveFromDiagram(item: { baseUri: string; nodeType: string, nodeName: string }) {
+    commands.executeCommand("vscode.openWith", getPerspectiveUri(Uri.parse(item.baseUri, true), `${item.nodeType}.${item.nodeName}`), ConfigEditorProvider.viewType);
   }
 
   private showPropertyLink(item: { baseUri: string }) {

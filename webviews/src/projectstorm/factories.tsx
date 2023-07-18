@@ -18,18 +18,18 @@ import { TaipyPortModel } from "./models";
 import NodeWidget from "./NodeWidget";
 
 export class TaipyNodeFactory extends AbstractReactFactory<DefaultNodeModel, DiagramEngine> {
-  private baseUri: string;
+  private perspective: string;
   constructor(nodeType: string) {
     super(nodeType);
-    this.baseUri = "";
+    this.perspective = "";
   }
 
-  setBaseUri(baseUri: string) {
-    this.baseUri = baseUri;
+  setSettings(perspective: string) {
+    this.perspective = perspective;
   }
 
   generateReactWidget(event: GenerateWidgetEvent<DefaultNodeModel>): JSX.Element {
-    return <NodeWidget engine={this.engine} node={event.model} baseUri={this.baseUri} />;
+    return <NodeWidget engine={this.engine} node={event.model} perspective={this.perspective} />;
   }
 
   generateModel(_: GenerateModelEvent): DefaultNodeModel {

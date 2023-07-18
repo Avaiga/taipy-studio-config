@@ -22,7 +22,7 @@ import { postGetNodeName, postSaveAsPngUrl, postRefreshMessage, postSaveMessage,
 import { applyPerspective, getNodeTypes } from "../utils/nodes";
 import { EditorAddNodeMessage } from "../../../shared/messages";
 import { getNodeIcon } from "../utils/config";
-import { diagramListener, initDiagram, populateModel, relayoutDiagram, setBaseUri, showNode } from "../utils/diagram";
+import { diagramListener, initDiagram, populateModel, relayoutDiagram, setFactoriesSettings, showNode } from "../utils/diagram";
 import { TaipyDiagramModel } from "../projectstorm/models";
 import { applySmallChanges } from "../utils/smallModelChanges";
 import { DisplayModel } from "../../../shared/diagram";
@@ -46,7 +46,7 @@ const Editor = ({ displayModel: propsDisplayModel, perspectiveId, baseUri, extra
   const oldDisplayModel = useRef<DisplayModel>();
   const oldPerspId = useRef<string>();
 
-  setBaseUri(engine, baseUri);
+  setFactoriesSettings(engine, perspectiveId);
 
   const [displayModel, extraEntities] = applyPerspective(propsDisplayModel, perspectiveId, propsExtraEntities);
 
@@ -117,7 +117,7 @@ const Editor = ({ displayModel: propsDisplayModel, perspectiveId, baseUri, extra
           </div>
         ))}
       </div>
-      <div className="diagram-widget">
+      <div className="diagram-widget" data-vscode-context={JSON.stringify({baseUri: baseUri})}>
         <CanvasWidget engine={engine} />
       </div>
     </div>
