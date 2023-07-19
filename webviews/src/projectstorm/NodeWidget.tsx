@@ -16,7 +16,7 @@ import { DiagramEngine } from "@projectstorm/react-diagrams-core";
 import styled from "@emotion/styled";
 import { DefaultNodeModel, DefaultPortModel, PortWidget } from "@projectstorm/react-diagrams";
 
-import { IN_PORT_NAME, getNodeContext } from "../utils/diagram";
+import { IN_PORT_NAME, OUT_PORT_NAME, getNodeContext } from "../utils/diagram";
 import { getNodeIcon } from "../utils/config";
 
 namespace S {
@@ -88,20 +88,20 @@ namespace S {
 interface NodeProps {
   node: DefaultNodeModel;
   engine: DiagramEngine;
-  baseUri: string;
+  perspective: string;
 }
 
-const NodeWidget = ({ node, baseUri, engine }: NodeProps) => {
+const NodeWidget = ({ node, perspective, engine }: NodeProps) => {
   const generatePort = useCallback(
     (port: DefaultPortModel) =>
       port.getName() === IN_PORT_NAME ? (
-        <S.InPortLabel>
+        <S.InPortLabel key={IN_PORT_NAME}>
           <PortWidget engine={engine} port={port} key={port.getID()}>
             <i className="taipy-icon-input"></i>
           </PortWidget>
         </S.InPortLabel>
       ) : (
-        <S.OutPortLabel>
+        <S.OutPortLabel key={OUT_PORT_NAME}>
           <PortWidget engine={engine} port={port} key={port.getID()}>
             <i className="taipy-icon-output"></i>
           </PortWidget>
@@ -113,7 +113,7 @@ const NodeWidget = ({ node, baseUri, engine }: NodeProps) => {
   return (
     <S.Node
       data-default-node-name={node.getOptions().name}
-      data-vscode-context={getNodeContext(node, baseUri)}
+      data-vscode-context={getNodeContext(node, perspective)}
       selected={node.isSelected()}
       background={node.getOptions().color}
     >

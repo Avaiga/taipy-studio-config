@@ -31,9 +31,12 @@ import createEngine, {
 import { BaseEvent, BaseEntityEvent } from "@projectstorm/react-canvas-core";
 import { debounce } from "debounce";
 
+import { SELECT } from "../../../shared/commands";
+import { DisplayModel, Positions } from "../../../shared/diagram";
 import { EditorAddNodeMessage } from "../../../shared/messages";
 import { DataNode, Pipeline, Scenario, Task } from "../../../shared/names";
-import { getNodeColor } from "./config";
+
+import { nodeTypes, isRoot, getNodeColor } from "./config";
 import {
   postActionMessage,
   postLinkCreation,
@@ -43,11 +46,8 @@ import {
   postPositionsMessage,
   postUpdateExtraEntities,
 } from "./messaging";
-import { SELECT } from "../../../shared/commands";
 import { TaipyDiagramModel, TaipyPortModel } from "../projectstorm/models";
 import { TaipyNodeFactory, TaipyPortFactory } from "../projectstorm/factories";
-import { nodeTypes } from "./config";
-import { DisplayModel, Positions } from "../../../shared/diagram";
 
 export const initDiagram = (): [DiagramEngine, DagreEngine, TaipyDiagramModel] => {
   const engine = createEngine();
@@ -71,9 +71,9 @@ export const initDiagram = (): [DiagramEngine, DagreEngine, TaipyDiagramModel] =
   return [engine, dagreEngine, model];
 };
 
-export const setBaseUri = (engine: DiagramEngine, baseUri: string) => {
+export const setFactoriesSettings = (engine: DiagramEngine, perspective: string) => {
   const fact = engine.getNodeFactories();
-  nodeTypes.forEach((nodeType) => (fact.getFactory(nodeType) as TaipyNodeFactory).setBaseUri(baseUri));
+  nodeTypes.forEach((nodeType) => (fact.getFactory(nodeType) as TaipyNodeFactory).setSettings(perspective));
 };
 
 const openPerspective: Record<string, boolean> = {
@@ -256,7 +256,8 @@ const isInLine = (pnt: PointModel, startLine: PointModel, endLine: PointModel) =
   if (L2 === 0) {
     return false;
   }
-  const r = ((pnt.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) + (pnt.getY() - startLine.getY()) * (endLine.getY() - startLine.getY())) / L2;
+  const r =
+    ((pnt.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) + (pnt.getY() - startLine.getY()) * (endLine.getY() - startLine.getY())) / L2;
 
   //Assume line thickness is circular
   if (0 <= r && r <= 1) {
@@ -280,18 +281,18 @@ export const relayoutDiagram = (engine: DiagramEngine, dagreEngine: DagreEngine)
       // remove unnecessary intermediate if same level
       if (Math.abs(points[0].getX() - points[2].getX()) < lineLeeway || Math.abs(points[0].getY() - points[2].getY()) < lineLeeway) {
         points.splice(1, 1);
-        l.setPoints(points);  
+        l.setPoints(points);
       }
     } else if (points.length > 3) {
       const pointsToRemove = [] as number[];
       let startIdx = 0;
       while (startIdx + 2 < points.length) {
-        if (isInLine(points[startIdx +1], points[startIdx], points[startIdx +2])) {
-          pointsToRemove.push(startIdx +1);
+        if (isInLine(points[startIdx + 1], points[startIdx], points[startIdx + 2])) {
+          pointsToRemove.push(startIdx + 1);
         }
         startIdx++;
       }
-      pointsToRemove.reverse().forEach(idx => points.splice(idx, 1));
+      pointsToRemove.reverse().forEach((idx) => points.splice(idx, 1));
       l.setPoints(points);
     }
   });
@@ -299,14 +300,18 @@ export const relayoutDiagram = (engine: DiagramEngine, dagreEngine: DagreEngine)
   cachePositions(model);
 };
 
-export const getNodeContext = (node: DefaultNodeModel, baseUri: string) => {
+export const getNodeContext = (node: DefaultNodeModel, perspective: string) => {
   const vscodeContext: any = {
     preventDefaultContextMenuItems: true,
+    webviewSection: "taipy-dup",
+    nodeType: node.getType(),
+    nodeName: node.getOptions().name,
   };
+  if (!isRoot(perspective)) {
+    vscodeContext.webviewSection += "-del";
+  }
   if (shouldOpenPerspective(node.getType())) {
-    vscodeContext.webviewSection = "taipy.node";
-    vscodeContext.baseUri = baseUri;
-    vscodeContext.perspective = getNodeId(node);
+    vscodeContext.webviewSection += "-persp";
   }
   return JSON.stringify(vscodeContext);
 };

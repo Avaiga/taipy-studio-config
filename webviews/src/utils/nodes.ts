@@ -14,7 +14,7 @@
 import { DisplayModel, Link, Nodes } from "../../../shared/diagram";
 import { DataNode, Scenario } from "../../../shared/names";
 import { getChildType } from "../../../shared/childtype";
-import { perspectiveRootId } from "../../../shared/views";
+import { isRoot } from "./config";
 
 const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: string) => {
   if (!displayModel.nodes || !Array.isArray(displayModel.links)) {
@@ -52,7 +52,10 @@ const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: strin
             foundLinks.push(idx);
           }
         });
-        foundLinks.sort().reverse().forEach(idx => modelLinks.splice(idx, 1));
+        foundLinks
+          .sort()
+          .reverse()
+          .forEach((idx) => modelLinks.splice(idx, 1));
       }
     }
     [nodeType, nodeName, follow] = queue.shift() || ["", "", false];
@@ -61,7 +64,7 @@ const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: strin
 };
 
 export const applyPerspective = (displayModel: DisplayModel, perspectiveId: string, extraEntities?: string): [any, string | undefined] => {
-  if (!displayModel || perspectiveId === perspectiveRootId) {
+  if (!displayModel || isRoot(perspectiveId)) {
     return [displayModel, undefined];
   }
   const appliedEntities: string[] = [];
@@ -78,7 +81,7 @@ export const applyPerspective = (displayModel: DisplayModel, perspectiveId: stri
           if (!res.nodes[t]) {
             res.nodes[t] = e;
           } else {
-            Object.entries(e).forEach(([n, d]) => res.nodes[t][n] = d);
+            Object.entries(e).forEach(([n, d]) => (res.nodes[t][n] = d));
           }
         });
         res.links.push(...nodeRes.links);

@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { stringify } from "@iarna/toml";
+import { JsonMap, stringify } from "@iarna/toml";
 import {
   CancellationToken,
   commands,
@@ -65,6 +65,7 @@ import { Context } from "../context";
 import {
   getDefaultContent,
   getDescendantProperties,
+  getNodeFromSymbol,
   getParentType,
   getSectionName,
   getSymbol,
@@ -112,16 +113,18 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   private constructor(private readonly context: ExtensionContext, private readonly taipyContext: Context) {
     this.extensionUri = context.extensionUri;
     this.cache = context.workspaceState.get(ConfigEditorProvider.cacheName, {} as ProviderCache);
-    // Drop Edit Provider
-    context.subscriptions.push(languages.registerDocumentDropEditProvider({ pattern: configFilePattern }, ConfigDropEditProvider.register(this.taipyContext)));
-    // Completion Item Provider
     context.subscriptions.push(
-      languages.registerCompletionItemProvider({ pattern: configFilePattern }, ConfigCompletionItemProvider.register(this.taipyContext))
+      // Drop Edit Provider
+      languages.registerDocumentDropEditProvider({ pattern: configFilePattern }, ConfigDropEditProvider.register(this.taipyContext)),
+      // Completion Item Provider
+      languages.registerCompletionItemProvider({ pattern: configFilePattern }, ConfigCompletionItemProvider.register(this.taipyContext)),
+      // Commands
+      commands.registerCommand("taipy.config.clearCache", this.clearCache, this),
+      commands.registerCommand("taipy.diagram.addNode", this.addNodeToCurrentDiagram, this),
+      commands.registerCommand("taipy.config.deleteNode", this.deleteConfigurationNode, this),
+      commands.registerCommand("taipy.perspective.removeFromDiagram", this.removeNodeFromPerspective, this),
+      commands.registerCommand("taipy.perspective.duplicateNode", this.duplicateNode, this)
     );
-
-    commands.registerCommand("taipy.config.clearCache", this.clearCache, this);
-    commands.registerCommand("taipy.diagram.addNode", this.addNodeToCurrentDiagram, this);
-    commands.registerCommand("taipy.config.deleteNode", this.deleteConfigurationNode, this);
   }
 
   async createNewElement(uri: Uri, nodeType: string) {
@@ -142,12 +145,11 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       .forEach((key) => {
         content[nodeType][nodeName][key] = defaultValues[key];
       });
-    edits.push(
-      TextEdit.insert(
-        doc.lineCount ? doc.lineAt(doc.lineCount - 1).range.end : new Position(0, 0),
-        "\n" + stringify(content).trimEnd() + "\n"
-      )
-    );
+    return this.addElementAtEnd(doc, content, edits);
+  }
+
+  private addElementAtEnd(doc: TextDocument, content: JsonMap, edits: TextEdit[] = []) {
+    edits.push(TextEdit.insert(doc.lineCount ? doc.lineAt(doc.lineCount - 1).range.end : new Position(0, 0), "\n" + stringify(content).trimEnd() + "\n"));
     return edits;
   }
 
@@ -167,19 +169,24 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   }
 
   private async deleteConfigurationNode(item: TreeItem) {
-    const nodeType = item.contextValue;
-    const nodeName = item.label as string;
+    return this.doDeleteConfigurationNode(item.contextValue, item.label as string, item.resourceUri);
+  }
+
+  private async doDeleteConfigurationNode(nodeType?: string, nodeName?: string, resourceUri?: Uri, refreshOnFail?: boolean) {
     const answer = await window.showWarningMessage(
       l10n.t("Do you really want to permanently delete {0}:{1} from the configuration?", nodeType, nodeName.toLowerCase()),
       "Yes",
       "No"
     );
     if (answer === "Yes") {
-      const uri = getOriginalUri(item.resourceUri);
+      const uri = getOriginalUri(resourceUri);
       const realDocument = await this.taipyContext.getDocFromUri(uri);
       const symbols = this.taipyContext.getSymbols(uri.toString());
       const nameSymbol = getSymbol(symbols, nodeType, nodeName);
       if (!nameSymbol) {
+        if (refreshOnFail) {
+          this.updateWebview(realDocument, realDocument.isDirty);
+        }
         return false;
       }
       const edits: TextEdit[] = [TextEdit.delete(nameSymbol.range)];
@@ -187,9 +194,15 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       const res = await this.applyEdits(realDocument.uri, edits);
       if (res) {
         await this.taipyContext.refreshSymbols(realDocument);
+      }
+      if (res || refreshOnFail) {
         this.updateWebview(realDocument, realDocument.isDirty);
       }
       return res;
+    } else if (refreshOnFail) {
+      const uri = getOriginalUri(resourceUri);
+      const realDocument = await this.taipyContext.getDocFromUri(uri);
+      this.updateWebview(realDocument, realDocument.isDirty);
     }
   }
 
@@ -319,7 +332,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
           this.createNode(realDocument, document.uri, e.nodeType, e.nodeName);
           break;
         case REMOVE_NODE:
-          this.removeNodeFromPerspective(realDocument, e.nodeType, e.nodeName) && this.removeExtraEntitiesInCache(document.uri, `${e.nodeType}.${e.nodeName}`);
+          this.doDeleteConfigurationNode(e.nodeType, e.nodeName, document.uri, true);
           break;
         case GET_NODE_NAME:
           this.getNodeName(realDocument, e.nodeType);
@@ -519,7 +532,39 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     return edits;
   }
 
-  private async removeNodeFromPerspective(realDocument: TextDocument, nodeType: string, nodeName: string) {
+  private async duplicateNode({ baseUri, nodeType, nodeName }: { baseUri: string; nodeType: string; nodeName: string }) {
+    const resourceUri = Uri.parse(baseUri, true);
+    const uri = getOriginalUri(resourceUri);
+    const realDocument = await this.taipyContext.getDocFromUri(uri);
+    return this.doDuplicateNode(realDocument, resourceUri, nodeType, nodeName);
+  }
+
+  private async doDuplicateNode(realDocument: TextDocument, perspectiveUri: Uri, nodeType: string, nodeName: string) {
+    const uri = realDocument.uri;
+    const symbols = this.taipyContext.getSymbols(uri.toString());
+    const nameSymbol = getSymbol(symbols, nodeType, nodeName);
+    if (!nameSymbol) {
+      return false;
+    }
+    const newName = await this.getNodeName(realDocument, nodeType, false);
+    if (!newName) {
+      return false;
+    }
+    // duplicate Node
+    const content = { [nodeType]: { [newName]: { ...getNodeFromSymbol(realDocument, nameSymbol) } } };
+    const edits = this.addElementAtEnd(realDocument, content);
+    this.addNodeToActiveDiagram(nodeType, newName);
+    return this.applyEdits(uri, edits);
+  }
+
+  private async removeNodeFromPerspective({ baseUri, nodeType, nodeName }: { baseUri: string; nodeType: string; nodeName: string }) {
+    const resourceUri = Uri.parse(baseUri, true);
+    const uri = getOriginalUri(resourceUri);
+    const realDocument = await this.taipyContext.getDocFromUri(uri);
+    return this.doRemoveNodeFromPerspective(realDocument, resourceUri, nodeType, nodeName);
+  }
+
+  private async doRemoveNodeFromPerspective(realDocument: TextDocument, perspectiveUri: Uri, nodeType: string, nodeName: string) {
     const uri = realDocument.uri;
     const symbols = this.taipyContext.getSymbols(uri.toString());
     const nameSymbol = getSymbol(symbols, nodeType, nodeName);
@@ -531,7 +576,9 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     getDescendantProperties(nodeType).forEach((p) => p && this.createOrDeleteLink(realDocument, nodeType, nodeName, p, "", false, true, edits));
     await this.removeNodeLinks(realDocument, nodeType, nodeName, symbols, edits);
     const ret = await this.applyEdits(realDocument.uri, edits);
-    if (!ret) {
+    if (ret) {
+      this.removeExtraEntitiesInCache(perspectiveUri, `${nodeType}.${nodeName}`);
+    } else {
       this.updateWebview(realDocument, realDocument.isDirty);
     }
     return ret;

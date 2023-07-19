@@ -12,6 +12,7 @@
  */
 
 import { DataNode, Pipeline, Scenario, Task } from "../../../shared/names";
+import { perspectiveRootId } from "../../../shared/views";
 
 const nodeColor: Record<string, string> = {
   [DataNode]: "var(--taipy-datanode-color)",
@@ -30,3 +31,6 @@ const nodeIcon: Record<string, string> = {
 export const getNodeIcon = (nodeType: string) => nodeIcon[nodeType];
 
 export const nodeTypes = [DataNode, Pipeline, Scenario, Task];
+
+export const isRoot = (perspId: string) => perspId === perspectiveRootId;
+

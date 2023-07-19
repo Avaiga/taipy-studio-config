@@ -22,7 +22,7 @@ const getAsString = (val: string | string[]) => (Array.isArray(val) ? (val as st
 
 const getDiagContext = (diag: WebDiag) =>
   JSON.stringify({
-    webviewSection: "taipy.property",
+    webviewSection: "taipy-property",
     baseUri: diag.uri,
   });
 
