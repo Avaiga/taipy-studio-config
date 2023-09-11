@@ -33,7 +33,7 @@ import { calculatePythonSymbols, getEnum, getEnumProps, getProperties, isClass, 
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
 import { getDescendantProperties, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getOriginalUri } from "./PerpectiveContentProvider";
-import { getCreateFunctionOrClassLabel, getModulesAndSymbols } from "../utils/pythonSymbols";
+import { getCreateFunctionOrClassLabel, getModulesAndSymbols, MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
 
 const nodeTypes = [DataNode, Task, Pipeline, Scenario];
 const validLinks = nodeTypes.reduce((vl, nt) => {
@@ -140,8 +140,12 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
 
 const getPythonSymbols = async (isFunction: boolean, lineText: string, position: Position) => {
   // get python symbols in repository
-  const [symbolsWithModule, modulesByUri] = await getModulesAndSymbols(isFunction);
+  const [symbolsWithModule, modulesByUri, mainModule] = await getModulesAndSymbols(isFunction);
   const modules = Object.values(modulesByUri);
+  if (mainModule) {
+    const mainIdx = modules.indexOf(MAIN_PYTHON_MODULE);
+    mainIdx > -1 && modules.splice(mainIdx, 0, mainModule);
+  }
   const cis = symbolsWithModule.map((v) => getCompletionItemInString(v, lineText, position, undefined, getPythonSuffix(isFunction)));
   modules.push(l10n.t("New module name"));
   cis.push(

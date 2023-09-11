@@ -406,7 +406,7 @@
     "@types/vscode": "^1.73.1",
     "@typescript-eslint/eslint-plugin": "^6.1.0",
     "@typescript-eslint/parser": "^6.1.0",
-    "@vscode/l10n-dev": "^0.0.28",
+    "@vscode/l10n-dev": "^0.0.29",
     "@vscode/test-electron": "^2.1.2",
     "@vscode/vsce": "^2.16.0",
     "concurrently": "^8.0.1",

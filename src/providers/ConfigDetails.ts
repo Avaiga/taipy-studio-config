@@ -48,7 +48,15 @@ import { ACTION, DELETE_PROPERTY, EDIT_NODE_NAME, EDIT_PROPERTY, REFRESH } from 
 import { ViewMessage } from "../../shared/messages";
 import { Context } from "../context";
 import { getOriginalUri, isUriEqual } from "./PerpectiveContentProvider";
-import { getEnum, getEnumProps, getProperties, calculatePythonSymbols, isFunction, isClass, getDefaultValues } from "../schema/validation";
+import {
+  getEnum,
+  getEnumProps,
+  getProperties,
+  calculatePythonSymbols,
+  isFunction,
+  isClass,
+  getDefaultValues,
+} from "../schema/validation";
 import {
   extractModule,
   getDescendantProperties,
@@ -100,7 +108,14 @@ export class ConfigDetailsView implements WebviewViewProvider {
     this.getNodeDiagnosticsAndLinks(node).then((diags) => {
       this._view?.webview.postMessage({
         viewId: DATA_NODE_DETAILS_ID,
-        props: { nodeType, nodeName: name, node, diagnostics: Object.keys(diags).length ? diags : undefined, orderedProps, allProps } as DataNodeDetailsProps,
+        props: {
+          nodeType,
+          nodeName: name,
+          node,
+          diagnostics: Object.keys(diags).length ? diags : undefined,
+          orderedProps,
+          allProps,
+        } as DataNodeDetailsProps,
       } as ViewMessage);
     });
   }
@@ -195,7 +210,11 @@ export class ConfigDetailsView implements WebviewViewProvider {
 
   private async deleteProperty(nodeType: string, nodeName: string, propertyName: string) {
     const yes = l10n.t("Yes");
-    const res = await window.showInformationMessage(l10n.t("Do you confirm the deletion of property {0} from entity {1} in toml?", propertyName, nodeName), l10n.t("No"), yes);
+    const res = await window.showInformationMessage(
+      l10n.t("Do you confirm the deletion of property {0} from entity {1} in toml?", propertyName, nodeName),
+      l10n.t("No"),
+      yes
+    );
     if (res !== yes) {
       return;
     }
@@ -209,7 +228,12 @@ export class ConfigDetailsView implements WebviewViewProvider {
     return workspace.applyEdit(we);
   }
 
-  private async editProperty(nodeType: string, nodeName: string, propertyName?: string, propertyValue?: string | string[]) {
+  private async editProperty(
+    nodeType: string,
+    nodeName: string,
+    propertyName?: string,
+    propertyValue?: string | string[]
+  ) {
     const symbols = this.taipyContext.getSymbols(this.configUri.toString());
     if (!symbols) {
       return;
@@ -221,7 +245,10 @@ export class ConfigDetailsView implements WebviewViewProvider {
       propertyRange = nameSymbol.range;
       const currentProps = nameSymbol.children.map((s) => s.name.toLowerCase());
       const properties = (await getProperties(nodeType)).filter((p) => !currentProps.includes(p.toLowerCase()));
-      propertyName = await window.showQuickPick(properties, { canPickMany: false, title: l10n.t("Select property for {0}.", nodeType) });
+      propertyName = await window.showQuickPick(properties, {
+        canPickMany: false,
+        title: l10n.t("Select property for {0}.", nodeType),
+      });
       if (!propertyName) {
         return;
       }
@@ -234,7 +261,11 @@ export class ConfigDetailsView implements WebviewViewProvider {
       const childType = getChildType(nodeType);
       const values = ((propertyValue || []) as string[]).map((v) => getUnsuffixedName(v.toLowerCase()));
       const childNames = getSymbol(symbols, childType).children.map(
-        (s) => ({ label: getSectionName(s.name), picked: values.includes(getUnsuffixedName(s.name.toLowerCase())) } as QuickPickItem)
+        (s) =>
+          ({
+            label: getSectionName(s.name),
+            picked: values.includes(getUnsuffixedName(s.name.toLowerCase())),
+          } as QuickPickItem)
       );
       if (!childNames.length) {
         window.showInformationMessage(l10n.t("No {0} entity in toml.", childType));
@@ -253,25 +284,32 @@ export class ConfigDetailsView implements WebviewViewProvider {
       await calculatePythonSymbols();
       const isFn = isFunction(propertyName);
       if (isFn || isClass(propertyName)) {
-        const [symbolsWithModule, modulesByUri] = await window.withProgress(
+        const [symbolsWithModule, modulesByUri, mainModule] = await window.withProgress(
           { location: ProgressLocation.Notification, title: l10n.t("Retrieving Python information") },
           () => getModulesAndSymbols(isFn)
         );
         const currentModule = extractModule(propertyValue as string);
         let resMod: string;
         if (Object.keys(modulesByUri).length) {
-          const items = Object.entries(modulesByUri).map(
-            ([uri, module]) =>
-              ({
-                label: module,
-                description: module === MAIN_PYTHON_MODULE ? uri.split("/").at(-1) : undefined,
-                picked: module === currentModule,
-                uri: uri,
-              } as QuickPickItem & { uri?: string; create?: boolean })
-          );
+          let mainIdx = -1;
+          const items = Object.entries(modulesByUri).map(([uri, module], idx) => {
+            module === MAIN_PYTHON_MODULE && (mainIdx = idx);
+            return {
+              label: module,
+              description: module === MAIN_PYTHON_MODULE ? uri.split("/").at(-1) : undefined,
+              picked: module === currentModule,
+              uri: uri,
+            } as QuickPickItem & { uri?: string; create?: boolean };
+          });
+          if (mainIdx > -1 && mainModule) {
+            items.splice(mainIdx, 0, {label: mainModule, uri: items[mainIdx].uri, picked: mainModule === currentModule});
+          }
           items.push({ label: "", kind: QuickPickItemKind.Separator });
           items.push({ label: l10n.t("New module name"), create: true });
-          const item = await window.showQuickPick(items, { canPickMany: false, title: l10n.t("Select Python module for {0}.{1}", nodeType, propertyName) });
+          const item = await window.showQuickPick(items, {
+            canPickMany: false,
+            title: l10n.t("Select Python module for {0}.{1}", nodeType, propertyName),
+          });
           if (!item) {
             return;
           }
@@ -280,7 +318,10 @@ export class ConfigDetailsView implements WebviewViewProvider {
           }
         }
         if (!resMod) {
-          resMod = await window.showInputBox({ title: l10n.t("Enter Python module for {0}.{1}", nodeType, propertyName), value: currentModule });
+          resMod = await window.showInputBox({
+            title: l10n.t("Enter Python module for {0}.{1}", nodeType, propertyName),
+            value: currentModule,
+          });
           if (resMod) {
             resMod = resMod.trim();
           }
@@ -296,7 +337,9 @@ export class ConfigDetailsView implements WebviewViewProvider {
             propertyValue.includes(".") &&
             (propertyValue as string).startsWith(resMod + ".") &&
             (propertyValue as string).substring(resMod.length + 1);
-          const items = symbols.map((fn) => ({ label: fn, picked: fn === currentfunc } as QuickPickItem & { create?: boolean }));
+          const items = symbols.map(
+            (fn) => ({ label: fn, picked: fn === currentfunc } as QuickPickItem & { create?: boolean })
+          );
           items.push({ label: "", kind: QuickPickItemKind.Separator });
           items.push({ label: getCreateFunctionOrClassLabel(isFn), create: true });
           const item = await window.showQuickPick(items, {
@@ -331,7 +374,10 @@ export class ConfigDetailsView implements WebviewViewProvider {
               getEnum(enumProp).map((v) => ({ label: v, picked: v === (propertyValue || defaultValue) })),
               { canPickMany: false, title: l10n.t("Select value for {0}.{1}", nodeType, propertyName) }
             )
-          : await window.showInputBox({ title: l10n.t("Enter value for {0}.{1}", nodeType, propertyName), value: (propertyValue || defaultValue) as string });
+          : await window.showInputBox({
+              title: l10n.t("Enter value for {0}.{1}", nodeType, propertyName),
+              value: (propertyValue || defaultValue) as string,
+            });
         if (res === undefined) {
           return;
         }
@@ -398,7 +444,12 @@ export class ConfigDetailsView implements WebviewViewProvider {
                 const res = oldNameRegexp.exec(line);
                 if (res) {
                   const start = line.indexOf(res[1]) + 1;
-                  tes.push(TextEdit.replace(new Range(new Position(i, start), new Position(i, start + res[1].length - 2)), newName));
+                  tes.push(
+                    TextEdit.replace(
+                      new Range(new Position(i, start), new Position(i, start + res[1].length - 2)),
+                      newName
+                    )
+                  );
                 }
               }
             }
@@ -436,7 +487,9 @@ export class ConfigDetailsView implements WebviewViewProvider {
                     <link href="${styleUri}" rel="stylesheet" />
                     <link href="${codiconsUri}" rel="stylesheet" />
                     <script nonce="${nonce}" defer type="text/javascript" src="${scriptUri}"></script>
-          <script nonce="${nonce}" type="text/javascript">window.taipyConfig=${JSON.stringify(getDefaultConfig(webview, this.extensionUri))};</script>
+          <script nonce="${nonce}" type="text/javascript">window.taipyConfig=${JSON.stringify(
+      getDefaultConfig(webview, this.extensionUri)
+    )};</script>
                 </head>
                 <body>
                     <div id="${containerId}"></div>
