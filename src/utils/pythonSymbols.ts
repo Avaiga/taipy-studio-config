@@ -12,12 +12,18 @@
  */
 
 import { commands, DocumentSymbol, l10n, SymbolKind, Uri, window, workspace } from "vscode";
-import { TAIPY_STUDIO_SETTINGS_CONFIG_NAME, TAIPY_STUDIO_SETTINGS_EXCLUDE_GLOB_PATTERN, TAIPY_STUDIO_SETTINGS_MAIN_PYTHON } from "./constants";
+import {
+  TAIPY_STUDIO_SETTINGS_CONFIG_NAME,
+  TAIPY_STUDIO_SETTINGS_EXCLUDE_GLOB_PATTERN,
+  TAIPY_STUDIO_SETTINGS_MAIN_PYTHON,
+} from "./constants";
 import { getLog } from "./logging";
 
-
 export const getMainPythonUri = async () => {
-  const workspaceConfig = workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_CONFIG_NAME, workspace.workspaceFolders && workspace.workspaceFolders[0]);
+  const workspaceConfig = workspace.getConfiguration(
+    TAIPY_STUDIO_SETTINGS_CONFIG_NAME,
+    workspace.workspaceFolders && workspace.workspaceFolders[0]
+  );
   const mainFile = workspaceConfig.get<string>(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON);
   const mainUris = await workspace.findFiles(mainFile, null, 1);
   let mainUri = mainUris.length ? mainUris[0] : undefined;
@@ -26,8 +32,12 @@ export const getMainPythonUri = async () => {
     mainUri = pyFiles.length ? pyFiles[0] : undefined;
     if (mainUri) {
       workspaceConfig.update(TAIPY_STUDIO_SETTINGS_MAIN_PYTHON, workspace.asRelativePath(mainUri));
-      window.showInformationMessage(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri)));
-      getLog().info(l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri)));
+      window.showInformationMessage(
+        l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri))
+      );
+      getLog().info(
+        l10n.t("Main module file has been set up as {0} in Workspace settings", workspace.asRelativePath(mainUri))
+      );
     } else {
       getLog().warn(l10n.t("No symbol detection as there is no Python file in workspace."));
     }
@@ -35,12 +45,18 @@ export const getMainPythonUri = async () => {
   return mainUri || null;
 };
 
-export const getCreateFunctionOrClassLabel = (isFunction: boolean) => isFunction ? l10n.t("Create a new function") : l10n.t("Create a new class");
+export const getCreateFunctionOrClassLabel = (isFunction: boolean) =>
+  isFunction ? l10n.t("Create a new function") : l10n.t("Create a new class");
 
 export const MAIN_PYTHON_MODULE = "__main__";
 
-export const getModulesAndSymbols = async (isFunction: boolean): Promise<[string[], Record<string, string>]> => {
-  const workspaceConfig = workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_CONFIG_NAME, workspace.workspaceFolders && workspace.workspaceFolders[0]);
+export const getModulesAndSymbols = async (
+  isFunction: boolean
+): Promise<[string[], Record<string, string>, string | undefined]> => {
+  const workspaceConfig = workspace.getConfiguration(
+    TAIPY_STUDIO_SETTINGS_CONFIG_NAME,
+    workspace.workspaceFolders && workspace.workspaceFolders[0]
+  );
   const excludePattern = workspaceConfig.get<string>(TAIPY_STUDIO_SETTINGS_EXCLUDE_GLOB_PATTERN);
   const pythonUris = await workspace.findFiles("**/*.py", excludePattern ? excludePattern : null);
   const mainUri = await getMainPythonUri();
@@ -48,45 +64,59 @@ export const getModulesAndSymbols = async (isFunction: boolean): Promise<[string
     pythonUris.map(
       (uri) =>
         new Promise<{ uri: Uri; symbols: DocumentSymbol[] }>((resolve, reject) => {
-          commands.executeCommand("vscode.executeDocumentSymbolProvider", uri).then((symbols: DocumentSymbol[]) => resolve({ uri, symbols }), reject);
+          commands
+            .executeCommand("vscode.executeDocumentSymbolProvider", uri)
+            .then((symbols: DocumentSymbol[]) => resolve({ uri, symbols }), reject);
         })
     )
   );
   const symbolsWithModule = [] as string[];
+  let mainModule: string = undefined;
   const modulesByUri = pythonUris.reduce((pv, uri) => {
     const uriStr = uri.path;
+    const paths = workspace.asRelativePath(uri).split("/");
+    const file = paths.at(-1);
+    paths.pop();
+    const fileMod = `${file.split(".", 2)[0]}`;
+    const module = paths.length ? `${paths.join(".")}.${fileMod}` : fileMod;
     if (uriStr === mainUri?.path) {
       pv[uriStr] = MAIN_PYTHON_MODULE;
+      mainModule = module;
     } else {
-      const paths = workspace.asRelativePath(uri).split("/");
-      const file = paths.at(-1);
-      paths.pop();
-      const fileMod = `${file.split(".", 2)[0]}`;
-      const module = paths.length ? `${paths.join(".")}.${fileMod}` : fileMod;
       pv[uriStr] = module;
     }
     return pv;
   }, {} as Record<string, string>);
   symbolsByUri.forEach((su) => {
-    Array.isArray(su.symbols) && su.symbols.forEach((symbol) => {
-      if ((isFunction && symbol.kind === SymbolKind.Function) || (!isFunction && symbol.kind === SymbolKind.Class)) {
-        symbolsWithModule.push(`${modulesByUri[su.uri.path]}.${symbol.name}`);
-      }
-    });
+    Array.isArray(su.symbols) &&
+      su.symbols.forEach((symbol) => {
+        if ((isFunction && symbol.kind === SymbolKind.Function) || (!isFunction && symbol.kind === SymbolKind.Class)) {
+          const mod = modulesByUri[su.uri.path];
+          symbolsWithModule.push(`${mod}.${symbol.name}`);
+          if (mod === MAIN_PYTHON_MODULE && mainModule) {
+            symbolsWithModule.push(`${mainModule}.${symbol.name}`);            
+          }
+        }
+      });
   });
-  return [symbolsWithModule, modulesByUri];
+  return [symbolsWithModule, modulesByUri, mainModule];
 };
 
 const IDENTIFIER_RE = /^[A-Za-z]\w*$/;
 const isValidPythonIdentifier = (value: string) => !!value && IDENTIFIER_RE.test(value);
-export const checkPythonIdentifierValidity = (value: string) => isValidPythonIdentifier(value) ? null: l10n.t("Not a valid Python identifier.");
+export const checkPythonIdentifierValidity = (value: string) =>
+  isValidPythonIdentifier(value) ? null : l10n.t("Not a valid Python identifier.");
 
 export const getNodeNameValidationFunction = (typeSymbol?: DocumentSymbol, nodeName?: string) => {
   return (value: string) => {
     if (!isValidPythonIdentifier(value) || value.toLowerCase() === "default") {
-      return l10n.t("Element {0} identifier should be a valid Python identifier and not 'default': '{1}'", typeSymbol?.name, value);
+      return l10n.t(
+        "Element {0} identifier should be a valid Python identifier and not 'default': '{1}'",
+        typeSymbol?.name,
+        value
+      );
     }
-    if (value !== nodeName && typeSymbol?.children.some(s => s.name === value)) {
+    if (value !== nodeName && typeSymbol?.children.some((s) => s.name === value)) {
       return l10n.t("Another {0} element has the identifier {1}", typeSymbol?.name, value);
     }
     return undefined as string;
