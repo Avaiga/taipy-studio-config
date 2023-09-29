@@ -65,7 +65,12 @@ let validationFunction: ValidateFunction<JsonMap>;
 export const getValidationFunction = async () => {
   if (!validationFunction) {
     const schema = await getValidationSchema();
-    const ajv = new Ajv({ strictTypes: false, allErrors: true, allowUnionTypes: true, keywords: ["taipy_function", "taipy_class"] });
+    const ajv = new Ajv({
+      strictTypes: false,
+      allErrors: true,
+      allowUnionTypes: true,
+      keywords: ["taipy_function", "taipy_class"],
+    });
     validationFunction = await ajv.compile<JsonMap>(schema);
   }
   return validationFunction;
@@ -96,16 +101,46 @@ const addPropEnums = (properties: any) => {
       });
 };
 
-const properties = {} as Record<string, string[]>;
+export enum PropType {
+  string,
+  array,
+  object,
+}
+
+const _properties = {} as Record<string, string[]>;
+const _propertyTypes = {} as Record<string, Record<string, PropType>>;
 export const getProperties = async (nodeType: string) => {
-  if (!Object.keys(properties).length) {
+  if (!Object.keys(_properties).length) {
     const schema = (await getValidationSchema()) as SchemaObject;
     Object.entries(schema.properties || {}).forEach(([k, v]: [string, any]) => {
-      properties[k] = Object.keys(v.properties || {});
-      properties[k].push(...Object.keys(v.additionalProperties?.properties || {}).filter((key) => key && key !== "if" && key !== "then" && key !== "else"));
+      _properties[k] = [];
+      _propertyTypes[k] = {};
+      Object.entries(v.properties || {}).forEach(([key, obj]) => {
+        _properties[k].push(key);
+        _propertyTypes[k][key] =
+          obj["type"] === "array" ? PropType.array : obj["type"] === "object" ? PropType.object : PropType.string;
+      });
+      Object.entries(v.additionalProperties?.properties || {})
+        .filter(([key]) => key && key !== "if" && key !== "then" && key !== "else")
+        .forEach(([key, obj]) => {
+          _properties[k].push(key);
+          _propertyTypes[k][key] = obj["type"] === "array" ? PropType.array : obj["type"] === "object" ? PropType.object : PropType.string;
+        });
     });
   }
-  return properties[nodeType] || [];
+  return _properties[nodeType] || [];
+};
+export const getPropertyType = async (nodeType: string, property: string) => {
+  if ((await getProperties(nodeType)).length) {
+    return _propertyTypes[nodeType][property] || PropType.string;
+  }
+  return PropType.string;
+};
+export const getPropertyTypes = async (nodeType: string) => {
+  if ((await getProperties(nodeType)).length) {
+    return _propertyTypes[nodeType] || {};
+  }
+  return {};
 };
 
 let functions: string[] = undefined;

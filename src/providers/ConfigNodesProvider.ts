@@ -29,13 +29,13 @@ import {
 import { selectConfigNodeCmd } from "../utils/commands";
 import { Context } from "../context";
 import { getPerspectiveUri } from "./PerpectiveContentProvider";
-import { DataNode, Pipeline, Scenario, Task } from "../../shared/names";
+import { DataNode, Sequence, Scenario, Task } from "../../shared/names";
 import { getNodeFromSymbol } from "../utils/symbols";
 
 const titles = {
   [DataNode]: l10n.t("Select data node"),
   [Task]: l10n.t("Select task"),
-  [Pipeline]: l10n.t("Select pipeline"),
+  [Sequence]: l10n.t("Select sequence"),
   [Scenario]: l10n.t("Select scenario"),
 };
 const getTitleFromType = (nodeType: string) => titles[nodeType] || "Select Something";
@@ -43,7 +43,6 @@ const getTitleFromType = (nodeType: string) => titles[nodeType] || "Select Somet
 const treeViewIdFromTypes = {
   [DataNode]: "taipy-config-datanodes",
   [Task]: "taipy-config-tasks",
-  [Pipeline]: "taipy-config-pipelines",
   [Scenario]: "taipy-config-scenarios",
 };
 export const getTreeViewIdFromType = (nodeType: string) => treeViewIdFromTypes[nodeType] || "";
@@ -52,7 +51,7 @@ const getMimeTypeFromType = (nodeType: string) => "application/vnd.code.tree." +
 const refreshCommandIdFromTypes = {
   [DataNode]: "taipy.refreshDataNodes",
   [Task]: "taipy.refreshTasks",
-  [Pipeline]: "taipy.refreshPipelines",
+  [Sequence]: "taipy.refreshSequences",
   [Scenario]: "taipy.refreshScenarios",
 };
 export const getRefreshCommandIdFromType = (nodeType: string) => refreshCommandIdFromTypes[nodeType];
@@ -60,21 +59,41 @@ export const getRefreshCommandIdFromType = (nodeType: string) => refreshCommandI
 const createCommandIdFromType = {
   [DataNode]: "taipy.config.datanode.create",
   [Task]: "taipy.config.task.create",
-  [Pipeline]: "taipy.config.pipeline.create",
+  [Sequence]: "taipy.config.sequence.create",
   [Scenario]: "taipy.config.scenario.create",
 };
 export const getCreateCommandIdFromType = (nodeType: string) => createCommandIdFromType[nodeType];
 
+const hasSequences = (node: JsonMap) => !!node?.sequences;
+const getSequences = (node: JsonMap, baseUri: Uri) =>
+  node
+    ? Object.entries(node.sequences || {}).map(([k, v]) => {
+        const si = new SequenceItem(k, v);
+        si.setResourceUri(baseUri);
+        return si;
+      })
+    : [];
+
 export abstract class ConfigItem extends TreeItem {
   abstract getNodeType();
+  baseUri: Uri;
   constructor(name: string, private readonly node: JsonMap) {
-    super(name, TreeItemCollapsibleState.None);
+    super(name, hasSequences(node) ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None);
     this.iconPath = "-";
     this.contextValue = name === "default" ? name : this.getNodeType();
     this.tooltip = name;
   }
   setResourceUri(uri: Uri) {
-    this.resourceUri = getPerspectiveUri(uri, this.getNodeType() + "." + this.label, typeof this.node === "object" ? stringify(this.node) : "" + this.node);
+    this.baseUri = uri;
+    this.resourceUri = getPerspectiveUri(
+      uri,
+      this.getNodeType() + "." + this.label,
+      typeof this.node === "object"
+        ? Array.isArray(this.node)
+          ? JSON.stringify(this.node)
+          : stringify(this.node)
+        : "" + this.node
+    );
     this.command = {
       command: selectConfigNodeCmd,
       title: getTitleFromType(this.contextValue),
@@ -83,6 +102,9 @@ export abstract class ConfigItem extends TreeItem {
   }
   getNode() {
     return this.node;
+  }
+  getChildren(): ConfigItem[] {
+    return [];
   }
 }
 export class DataNodeItem extends ConfigItem {
@@ -97,9 +119,9 @@ export class TaskItem extends ConfigItem {
   }
 }
 
-export class PipelineItem extends ConfigItem {
+export class SequenceItem extends ConfigItem {
   getNodeType() {
-    return Pipeline;
+    return Sequence;
   }
 }
 
@@ -107,11 +129,16 @@ export class ScenarioItem extends ConfigItem {
   getNodeType() {
     return Scenario;
   }
+  getChildren() {
+    return getSequences(this.getNode(), this.baseUri);
+  }
 }
 
 export type TreeNodeCtor<T extends ConfigItem> = new (name: string, node: object) => T;
 
-export class ConfigNodesProvider<T extends ConfigItem = ConfigItem> implements TreeDataProvider<T>, TreeDragAndDropController<T> {
+export class ConfigNodesProvider<T extends ConfigItem = ConfigItem>
+  implements TreeDataProvider<T>, TreeDragAndDropController<T>
+{
   private _onDidChangeTreeData: EventEmitter<T | undefined> = new EventEmitter<T | undefined>();
   readonly onDidChangeTreeData: Event<T | undefined> = this._onDidChangeTreeData.event;
 
@@ -138,7 +165,7 @@ export class ConfigNodesProvider<T extends ConfigItem = ConfigItem> implements T
     if (uri) {
       const doc = await context.getDocFromUri(uri);
       const configNodeSymbols = context.getConfigNodes(this.nodeType);
-      const configNodes: T[] = configNodeSymbols.map(s => {
+      const configNodes: T[] = configNodeSymbols.map((s) => {
         const item = new this.nodeCtor(s.name, getNodeFromSymbol(doc, s));
         item.setResourceUri(uri);
         return item;
@@ -164,7 +191,7 @@ export class ConfigNodesProvider<T extends ConfigItem = ConfigItem> implements T
 
   getChildren(element?: T): Thenable<T[]> {
     if (element || !this.configItems) {
-      return Promise.resolve([]);
+      return Promise.resolve(element ? (element.getChildren() as T[]) : []);
     } else {
       return Promise.resolve(this.configItems);
     }

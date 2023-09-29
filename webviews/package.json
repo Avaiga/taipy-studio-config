@@ -1,7 +1,7 @@
 {
   "name": "taipy-studio-webviews",
   "description": "Components for Visual Studio Code extension for Taipy",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "scripts": {
     "build": "webpack --mode development",
     "prod": "webpack --mode production",
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@projectstorm/react-diagrams": "^7.0.1",
-    "@vscode/l10n": "^0.0.15",
+    "@vscode/l10n": "^0.0.16",
     "@vscode/webview-ui-toolkit": "^1.2.2",
     "debounce": "^1.2.1",
     "dom-to-image-more": "^3.1.1",

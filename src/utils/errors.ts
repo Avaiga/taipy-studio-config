@@ -11,32 +11,48 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { commands, Diagnostic, DiagnosticSeverity, DocumentSymbol, l10n, languages, Range, SymbolKind, TextDocument, Uri, window, workspace } from "vscode";
+import {
+  commands,
+  Diagnostic,
+  DiagnosticSeverity,
+  DocumentSymbol,
+  l10n,
+  languages,
+  Range,
+  SymbolKind,
+  TextDocument,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
 import { ErrorObject } from "ajv";
 
 import { getOriginalUri } from "../providers/PerpectiveContentProvider";
-import { getArrayFromText, getDescendantProperties, getPythonSuffix, getSymbol, getUnsuffixedName } from "./symbols";
-import { getChildType } from "../../shared/childtype";
-import { DataNode, Pipeline, Task } from "../../shared/names";
+import { getArrayFromText, getPythonSuffix, getSymbol, getUnsuffixedName } from "./symbols";
+import { DataNode, Sequence, Task } from "../../shared/names";
 import { getPythonReferences } from "../schema/validation";
 import { getMainPythonUri, MAIN_PYTHON_MODULE } from "./pythonSymbols";
 import { getLog } from "./logging";
+import { getDescendantProperties } from "../../shared/nodeTypes";
 
 const diagnoticsCollection = languages.createDiagnosticCollection("taipy-config-symbol");
 
-const linkNodeTypes = [DataNode, Task, Pipeline];
+const linkNodeTypes = [DataNode, Task, Sequence];
 
-export const reportInconsistencies = async (doc: TextDocument, symbols: Array<DocumentSymbol>, schemaErrors: ErrorObject[] | null) => {
+export const reportInconsistencies = async (
+  doc: TextDocument,
+  symbols: Array<DocumentSymbol>,
+  schemaErrors: ErrorObject[] | null
+) => {
   const nodeIds = new Set<string>();
   const diagnostics = [] as Diagnostic[];
   if (Array.isArray(symbols)) {
     // Check the existence of the linked elements
     symbols.forEach((symbol) => {
-      const childType = getChildType(symbol.name);
-      childType &&
-        getDescendantProperties(symbol.name)
-          .filter((p) => p)
-          .forEach((prop) => {
+      getDescendantProperties(symbol.name)
+        .filter((p) => p)
+        .forEach((desc) => {
+          Object.entries(desc).forEach(([prop, childType]) =>
             symbol.children.forEach((s) => {
               const linksSymbol = s.children.find((ss) => ss.name === prop);
               if (!linksSymbol) {
@@ -61,17 +77,25 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
                     source: "Consistency checker",
                   });
                 });
-            });
-          });
+            })
+          );
+        });
     });
     // Check the use of the elements
     symbols
       .filter((s) => linkNodeTypes.includes(s.name))
       .forEach((typeSymbol) =>
         typeSymbol.children
-          .filter((nameSymbol) => "default" !== nameSymbol.name && !nodeIds.has(`${typeSymbol.name}.${nameSymbol.name}`))
+          .filter(
+            (nameSymbol) => "default" !== nameSymbol.name && !nodeIds.has(`${typeSymbol.name}.${nameSymbol.name}`)
+          )
           .forEach((nameSymbol) => {
-            const range = (nameSymbol.range.isSingleLine) ? nameSymbol.range : nameSymbol.range.with(nameSymbol.range.start, nameSymbol.range.start.translate(0, typeSymbol.name.length + nameSymbol.name.length + 50));
+            const range = nameSymbol.range.isSingleLine
+              ? nameSymbol.range
+              : nameSymbol.range.with(
+                  nameSymbol.range.start,
+                  nameSymbol.range.start.translate(0, typeSymbol.name.length + nameSymbol.name.length + 50)
+                );
             diagnostics.push({
               severity: DiagnosticSeverity.Information,
               range: range,
@@ -83,8 +107,12 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
   }
   // check python function or class references
   const pythonReferences = await getPythonReferences();
-  const pythonSymbol2TomlSymbols = {} as Record<string, { uri?: Uri; symbols: Array<DocumentSymbol>; isFunction: boolean }>;
-  symbols?.filter((typeSymbol) => !!pythonReferences[typeSymbol.name])
+  const pythonSymbol2TomlSymbols = {} as Record<
+    string,
+    { uri?: Uri; symbols: Array<DocumentSymbol>; isFunction: boolean }
+  >;
+  symbols
+    ?.filter((typeSymbol) => !!pythonReferences[typeSymbol.name])
     .forEach((typeSymbol) =>
       typeSymbol.children.forEach((nameSymbol) =>
         nameSymbol.children
@@ -97,7 +125,12 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
                 diagnostics.push({
                   severity: DiagnosticSeverity.Error,
                   range: propSymbol.range,
-                  message: l10n.t("Python reference should include a module '{0}.{1}.{2}'.", typeSymbol.name, nameSymbol.name, propSymbol.name),
+                  message: l10n.t(
+                    "Python reference should include a module '{0}.{1}.{2}'.",
+                    typeSymbol.name,
+                    nameSymbol.name,
+                    propSymbol.name
+                  ),
                   source: "Python reference checker",
                 });
               } else {
@@ -122,13 +155,18 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
     for (const ps of pythonSymbols) {
       const parts = ps.split(".");
       parts.pop();
-      const uris = parts[0] === MAIN_PYTHON_MODULE ? [mainUri] : await workspace.findFiles(`${parts.join("/")}.py`, null, 1);
+      const uris =
+        parts[0] === MAIN_PYTHON_MODULE ? [mainUri] : await workspace.findFiles(`${parts.join("/")}.py`, null, 1);
       if (!uris.length) {
         pythonSymbol2TomlSymbols[ps].symbols.forEach((propSymbol) =>
           diagnostics.push({
             severity: DiagnosticSeverity.Error,
             range: propSymbol.range,
-            message: l10n.t("Cannot find file for Python {0}: '{1}'.", getPythonSuffix(pythonSymbol2TomlSymbols[ps].isFunction), ps),
+            message: l10n.t(
+              "Cannot find file for Python {0}: '{1}'.",
+              getPythonSuffix(pythonSymbol2TomlSymbols[ps].isFunction),
+              ps
+            ),
             source: "Python reference checker",
           })
         );
@@ -143,7 +181,9 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
       pythonUris.map(
         (uri) =>
           new Promise<{ uri: Uri; symbols: DocumentSymbol[] }>((resolve, reject) => {
-            commands.executeCommand("vscode.executeDocumentSymbolProvider", uri).then((symbols: DocumentSymbol[]) => resolve({ uri, symbols }), reject);
+            commands
+              .executeCommand("vscode.executeDocumentSymbolProvider", uri)
+              .then((symbols: DocumentSymbol[]) => resolve({ uri, symbols }), reject);
           })
       )
     );
@@ -157,7 +197,9 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
         found =
           Array.isArray(symbols?.symbols) &&
           symbols.symbols.some(
-            (pySymbol) => pySymbol.kind === (pythonSymbol2TomlSymbols[ps].isFunction ? SymbolKind.Function : SymbolKind.Class) && pySymbol.name === fn
+            (pySymbol) =>
+              pySymbol.kind === (pythonSymbol2TomlSymbols[ps].isFunction ? SymbolKind.Function : SymbolKind.Class) &&
+              pySymbol.name === fn
           );
       }
       if (!found) {
@@ -165,7 +207,11 @@ export const reportInconsistencies = async (doc: TextDocument, symbols: Array<Do
           diagnostics.push({
             severity: DiagnosticSeverity.Error,
             range: propSymbol.range,
-            message: l10n.t("Cannot find Python {0}: '{1}'.", getPythonSuffix(pythonSymbol2TomlSymbols[ps].isFunction), ps),
+            message: l10n.t(
+              "Cannot find Python {0}: '{1}'.",
+              getPythonSuffix(pythonSymbol2TomlSymbols[ps].isFunction),
+              ps
+            ),
             source: "python reference checker",
             code: {
               target: pythonSymbol2TomlSymbols[ps].uri.with({

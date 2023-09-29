@@ -29,11 +29,11 @@
       "fontCharacter": "\\e907",
       "fontId": "taipy-font"
     },
-    "taipy-pipeline": {
+    "taipy-sequence": {
       "fontCharacter": "\\e903",
       "fontId": "taipy-font"
     },
-    "taipy-pipeline-add": {
+    "taipy-sequence-add": {
       "fontCharacter": "\\e903",
       "fontId": "taipy-font"
     },

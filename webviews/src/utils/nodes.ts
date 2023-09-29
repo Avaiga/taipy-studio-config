@@ -12,8 +12,7 @@
  */
 
 import { DisplayModel, Link, Nodes } from "../../../shared/diagram";
-import { DataNode, Scenario } from "../../../shared/names";
-import { getChildType } from "../../../shared/childtype";
+import { DataNode, Scenario, Sequence, Task } from "../../../shared/names";
 import { isRoot } from "./config";
 
 const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: string) => {
@@ -90,12 +89,8 @@ export const applyPerspective = (displayModel: DisplayModel, perspectiveId: stri
   return [res, appliedEntities.length ? appliedEntities.join(";") : undefined];
 };
 
+const orderedTypes = [Scenario, Sequence, Task, DataNode];
+
 export const getNodeTypes = (perspectiveId: string) => {
-  const [nodeType, name] = perspectiveId.split(".", 2);
-  let childType = name ? nodeType : Scenario;
-  const res = name ? [] : [Scenario];
-  while ((childType = getChildType(childType))) {
-    res.push(childType);
-  }
-  return res.reverse();
+  return orderedTypes.slice(orderedTypes.indexOf(perspectiveId.split(".", 2)[0]) + 1);
 };

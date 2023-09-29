@@ -38,10 +38,10 @@ selected configuration file.
 - If you select a Data Node, its details appear in the Details view, at the bottom of the pane.
 - If you right-click a Data Node, you can select the 'Add/Show node'
   option:
-  - If the Data Node is already present in the Pipeline or Scenario
+  - If the Data Node is already present in the Sequence or Scenario
     diagram view that is opened, the view will be panned so
     that this Data Node is displayed in its center.
-  - If the Data Node is not present in the Pipeline or Scenario
+  - If the Data Node is not present in the Sequence or Scenario
     diagram view that is opened, it is added to it, so you can connect
     it.
 
@@ -53,27 +53,27 @@ selected configuration file.
 - If you select a Task, its details appear in the Details view, at the bottom of the pane.
 - If you right-click a Task, you can select the 'Add/Show node'
   option:
-  - If the Task is already present in the Pipeline or Scenario
+  - If the Task is already present in the Sequence or Scenario
     diagram view that is opened, the view will be panned so
     that this Task is displayed in its center.
-  - If the Task is not present in the Pipeline or Scenario
+  - If the Task is not present in the Sequence or Scenario
     diagram view that is opened, it is added to it.
 
-### Pipelines section
+### Sequences section
 
-The Pipelines section displays the list of the names of all the pipelines read from the
+The Sequences section displays the list of the names of all the sequences read from the
 selected configuration file.
 
-- If you select a Pipeline, its details appear in the Details view, at the bottom of the pane.
-- If you right-click a Pipeline, you have two options:
+- If you select a Sequence, its details appear in the Details view, at the bottom of the pane.
+- If you right-click a Sequence, you have two options:
 
    - "Add/Show node": if the opened diagram view is a Scenario view,
-     the Pipeline is added to the view it if was not yet present.<br/>
-    If the Pipeline was already in the scenario represented by the
+     the Sequence is added to the view it if was not yet present.<br/>
+    If the Sequence was already in the scenario represented by the
     diagram view, the view is panned so you can spot the
-    pipeline node.
+    sequence node.
   
-  - "Show perspective": opens a diagram view for that pipeline.
+  - "Show perspective": opens a diagram view for that sequence.
 
 
 ### Text edition of configuration files.

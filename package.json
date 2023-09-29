@@ -3,7 +3,7 @@
   "displayName": "Taipy Studio Configuration Builder",
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Taipy",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "homepage": "https://github.com/Avaiga/taipy-studio-config.git",
   "repository": {
     "type": "git",
@@ -96,8 +96,8 @@
         "icon": "$(add)"
       },
       {
-        "command": "taipy.config.pipeline.create",
-        "title": "%taipy.config.commands.taipy.config.pipeline.create%",
+        "command": "taipy.config.sequence.create",
+        "title": "%taipy.config.commands.taipy.config.sequence.create%",
         "icon": "$(add)"
       },
       {
@@ -163,8 +163,8 @@
           "when": "taipy.config.numberOfConfigFiles > 0"
         },
         {
-          "id": "taipy-config-pipelines",
-          "name": "%taipy.config.views.taipy-config-panel.taipy-config-pipelines%",
+          "id": "taipy-config-sequences",
+          "name": "%taipy.config.views.taipy-config-panel.taipy-config-sequences%",
           "when": "taipy.config.numberOfConfigFiles > 0",
           "visibility": "collapsed"
         },
@@ -201,8 +201,8 @@
         "contents": "%taipy.config.viewsWelcome.taipy-config-tasks%"
       },
       {
-        "view": "taipy-config-pipelines",
-        "contents": "%taipy.config.viewsWelcome.taipy-config-pipelines%"
+        "view": "taipy-config-sequences",
+        "contents": "%taipy.config.viewsWelcome.taipy-config-sequences%"
       },
       {
         "view": "taipy-config-scenarios",
@@ -227,8 +227,8 @@
           "group": "navigation"
         },
         {
-          "command": "taipy.config.pipeline.create",
-          "when": "view == taipy-config-pipelines",
+          "command": "taipy.config.sequence.create",
+          "when": "view == taipy-config-sequences",
           "group": "navigation"
         },
         {
@@ -245,19 +245,19 @@
       "view/item/context": [
         {
           "command": "taipy.perspective.show",
-          "when": "view == taipy-configs || viewItem != default && view =~ /taipy-config-(pipelines|scenarios)/"
+          "when": "view == taipy-configs || viewItem != default && view =~ /taipy-config-(sequences|scenarios)/"
         },
         {
           "command": "taipy.diagram.addNode",
-          "when": "taipy.config.diagram.visible && viewItem != default && view =~ /taipy-config-(datanodes|tasks|pipelines)/"
+          "when": "taipy.config.diagram.visible && viewItem != default && view =~ /taipy-config-(datanodes|tasks|sequences)/"
         },
         {
           "command": "taipy.config.deleteNode",
-          "when": "view =~ /taipy-config-(datanodes|tasks|pipelines|scenarios)/"
+          "when": "view =~ /taipy-config-(datanodes|tasks|sequences|scenarios)/"
         },
         {
           "command": "taipy.config.renameNode",
-          "when": "view =~ /taipy-config-(datanodes|tasks|pipelines|scenarios)/"
+          "when": "view =~ /taipy-config-(datanodes|tasks|sequences|scenarios)/"
         },
         {
           "command": "taipy.config.revealInExplorer",
@@ -337,17 +337,17 @@
           "default": "taipy-icon-task",
           "description": "%taipy.config.settings.diagram.task.icon.desc%"
         },
-        "taipyStudio.diagram.pipeline.color": {
+        "taipyStudio.diagram.sequence.color": {
           "type": "string",
           "format": "color-hex",
           "default": "#08a87d",
-          "description": "%taipy.config.settings.diagram.pipeline.color.desc%"
+          "description": "%taipy.config.settings.diagram.sequence.color.desc%"
         },
-        "taipyStudio.diagram.pipeline.icon": {
+        "taipyStudio.diagram.sequence.icon": {
           "type": "string",
           "format": "icon",
-          "default": "taipy-icon-pipeline",
-          "description": "%taipy.config.settings.diagram.pipeline.icon.desc%"
+          "default": "taipy-icon-sequence",
+          "description": "%taipy.config.settings.diagram.sequence.icon.desc%"
         },
         "taipyStudio.diagram.scenario.color": {
           "type": "string",

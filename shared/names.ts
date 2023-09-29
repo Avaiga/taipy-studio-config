@@ -12,8 +12,16 @@
  */
 
 export const Taipy = "TAIPY";
+export const Core = "CORE";
 export const Job = "JOB";
 export const DataNode = "DATA_NODE";
 export const Task = "TASK";
-export const Pipeline = "PIPELINE";
+export const Sequence = "SEQUENCE";
 export const Scenario = "SCENARIO";
+
+export const PROP_INPUTS = "inputs";
+export const PROP_OUTPUTS = "outputs";
+export const PROP_TASKS = "tasks";
+export const PROP_SEQUENCES = "sequences";
+export const PROP_DATANODES = "additional_data_nodes";
+

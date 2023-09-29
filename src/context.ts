@@ -42,7 +42,7 @@ import {
   getCreateCommandIdFromType,
   getRefreshCommandIdFromType,
   getTreeViewIdFromType,
-  PipelineItem,
+  SequenceItem,
   ScenarioItem,
   TaskItem,
   TreeNodeCtor,
@@ -110,7 +110,6 @@ export class Context {
     // Create Tree Views
     this.treeViews.push(this.createTreeView(DataNodeItem));
     this.treeViews.push(this.createTreeView(TaskItem));
-    this.treeViews.push(this.createTreeView(PipelineItem));
     this.treeViews.push(this.createTreeView(ScenarioItem));
     // Dispose when finished
     vsContext.subscriptions.push(...this.treeViews);

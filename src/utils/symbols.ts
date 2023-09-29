@@ -14,35 +14,35 @@
 import { DocumentSymbol, SymbolKind, TextDocument, workspace } from "vscode";
 
 import { DisplayModel, Link, LinkName, Nodes, Positions } from "../../shared/diagram";
-import { DataNode, Pipeline, Scenario, Task } from "../../shared/names";
-import { getChildType } from "../../shared/childtype";
+import { DataNode, Scenario, Task, PROP_INPUTS, PROP_OUTPUTS, PROP_TASKS, PROP_DATANODES } from "../../shared/names";
+import { getDescendantProperties } from "../../shared/nodeTypes";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "./constants";
 
-const TASK_INPUTS = "inputs";
-const TASK_OUTPUTS = "outputs";
-const PIPELINE_TASKS = "tasks";
-const SCENARIO_PIPELINES = "pipelines";
-
-const descendantProperties: Record<string, [string, string]> = {
-  [Scenario]: ["", SCENARIO_PIPELINES],
-  [Pipeline]: ["", PIPELINE_TASKS],
-  [Task]: [TASK_INPUTS, TASK_OUTPUTS],
-};
-export const getDescendantProperties = (nodeType: string) => descendantProperties[nodeType] || ["", ""];
+export const getDescendantPropertiesForType = (parentType: string, childType: string) =>
+  getDescendantProperties(parentType)
+    .filter((p) => p)
+    .map(
+      (desc) =>
+        Object.entries(desc).reduce((pv, [p, t]) => {
+          t === childType && pv.push(p);
+          return pv;
+        }),
+      []
+    )
+    .flat()
+    .filter((p) => p);
 
 const dropByTypes: Record<string, string[]> = {
-  [DataNode]: [TASK_INPUTS, TASK_OUTPUTS],
-  [Task]: [PIPELINE_TASKS],
-  [Pipeline]: [SCENARIO_PIPELINES],
+  [DataNode]: [PROP_INPUTS, PROP_OUTPUTS, PROP_DATANODES],
+  [Task]: [PROP_TASKS],
 };
 export const getPropertyToDropType = (nodeType: string) => dropByTypes[nodeType] || [];
 
-const parentType: Record<string, string> = {
-  [DataNode]: Task,
-  [Task]: Pipeline,
-  [Pipeline]: Scenario,
+const parentTypes: Record<string, string[]> = {
+  [DataNode]: [Task, Scenario],
+  [Task]: [Scenario],
 };
-export const getParentType = (nodeType: string) => parentType[nodeType] || "";
+export const getParentTypes = (nodeType: string) => parentTypes[nodeType] || [];
 
 export const getSymbol = (symbols: DocumentSymbol[], ...names: string[]): DocumentSymbol => {
   if (!symbols) {
@@ -57,7 +57,6 @@ export const getSymbol = (symbols: DocumentSymbol[], ...names: string[]): Docume
 const supportedNodeTypes = {
   [DataNode.toLowerCase()]: true,
   [Task.toLowerCase()]: true,
-  [Pipeline.toLowerCase()]: true,
   [Scenario.toLowerCase()]: true,
 };
 const ignoredNodeNames = {
@@ -66,7 +65,10 @@ const ignoredNodeNames = {
 
 export const getNodeFromSymbol = (doc: TextDocument, symbol: DocumentSymbol) => {
   const node = {};
-  symbol && symbol.children.forEach((s) => (node[s.name] = s.kind === SymbolKind.Array ? getSymbolArrayValue(doc, s) : getSymbolValue(doc, s)));
+  symbol &&
+    symbol.children.forEach(
+      (s) => (node[s.name] = s.kind === SymbolKind.Array ? getSymbolArrayValue(doc, s) : s.kind === SymbolKind.Object ? getNodeFromSymbol(doc, s) : getSymbolValue(doc, s))
+    );
   return node;
 };
 
@@ -77,13 +79,14 @@ export const getArrayFromText = (text: string) => {
   if (text.trim()) {
     const res = EXTRACT_ARRAY_INNER_CONTENT.exec(text);
     if (res?.length === 2) {
-      return res[1].split(EXTRACT_STRINGS_RE).filter(v => v);
+      return res[1].split(EXTRACT_STRINGS_RE).filter((v) => v);
     }
   }
   return [];
 };
 
-export const getSymbolArrayValue = (doc: TextDocument, symbol: DocumentSymbol, prop?: string) => getSymbolValue(doc, symbol, prop) as string[] || [];
+export const getSymbolArrayValue = (doc: TextDocument, symbol: DocumentSymbol, prop?: string) =>
+  (getSymbolValue(doc, symbol, prop) as string[]) || [];
 
 const getSymbolValue = <T>(doc: TextDocument, symbol: DocumentSymbol, prop?: string) => {
   const propSymbol = prop ? symbol?.children.find((s) => s.name === prop) : symbol;
@@ -107,27 +110,39 @@ export const toDisplayModel = (doc: TextDocument, symbols: DocumentSymbol[], pos
       return;
     }
     nodes[typeSymbol.name] = {};
-    const [inputProp, outputProp] = getDescendantProperties(typeSymbol.name);
-    const childType = getChildType(typeSymbol.name);
+    const [inDesc, outDesc] = getDescendantProperties(typeSymbol.name);
     typeSymbol.children.forEach((nameSymbol) => {
       if (ignoredNodeNames[nameSymbol.name.toLowerCase()]) {
         return;
       }
       nodes[typeSymbol.name][nameSymbol.name] = {};
       const nodeId = `${typeSymbol.name}.${nameSymbol.name}`;
-      positions && positions[nodeId] && positions[nodeId].length && (nodes[typeSymbol.name][nameSymbol.name].position = positions[nodeId][0]);
-      if (childType) {
-        if (outputProp) {
+      positions &&
+        positions[nodeId] &&
+        positions[nodeId].length &&
+        (nodes[typeSymbol.name][nameSymbol.name].position = positions[nodeId][0]);
+      outDesc &&
+        Object.entries(outDesc).forEach(([outputProp, childType]) =>
           getSymbolArrayValue(doc, nameSymbol, outputProp).forEach((childName: string) =>
-            links.push(getLink([typeSymbol.name, nameSymbol.name, childType, getUnsuffixedName(childName)] as LinkName, positions))
-          );
-        }
-        if (inputProp) {
+            links.push(
+              getLink(
+                [typeSymbol.name, nameSymbol.name, childType, getUnsuffixedName(childName)] as LinkName,
+                positions
+              )
+            )
+          )
+        );
+      inDesc &&
+        Object.entries(inDesc).forEach(([inputProp, childType]) =>
           getSymbolArrayValue(doc, nameSymbol, inputProp).forEach((childName: string) =>
-            links.push(getLink([childType, getUnsuffixedName(childName), typeSymbol.name, nameSymbol.name] as LinkName, positions))
-          );
-        }
-      }
+            links.push(
+              getLink(
+                [childType, getUnsuffixedName(childName), typeSymbol.name, nameSymbol.name] as LinkName,
+                positions
+              )
+            )
+          )
+        );
     });
   });
   return { nodes, links };
@@ -141,11 +156,12 @@ const getLink = (linkName: LinkName, positions?: Positions) => {
 const defaultContents: Record<string, Record<string, string | string[]>> = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   [DataNode]: { storage_type: "", scope: "" },
-  [Task]: { [TASK_INPUTS]: [], [TASK_OUTPUTS]: [], function: "", skippable: "" },
-  [Pipeline]: { [PIPELINE_TASKS]: [] },
-  [Scenario]: { [SCENARIO_PIPELINES]: [] },
+  [Task]: { [PROP_INPUTS]: [], [PROP_OUTPUTS]: [], function: "", skippable: "" },
+  [Scenario]: { [PROP_DATANODES]: [], [PROP_TASKS]: [] },
 };
-export const getDefaultContent = (nodeType: string, nodeName: string) => ({ [nodeType]: { [nodeName]: defaultContents[nodeType] || {} } });
+export const getDefaultContent = (nodeType: string, nodeName: string) => ({
+  [nodeType]: { [nodeName]: defaultContents[nodeType] || {} },
+});
 
 export const getUnsuffixedName = (name: string) => {
   const p = name.lastIndexOf(":");

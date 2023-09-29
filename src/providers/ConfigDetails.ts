@@ -59,16 +59,14 @@ import {
 } from "../schema/validation";
 import {
   extractModule,
-  getDescendantProperties,
   getNodeFromSymbol,
-  getParentType,
+  getParentTypes,
   getPythonSuffix,
   getSectionName,
   getSymbol,
   getSymbolArrayValue,
   getUnsuffixedName,
 } from "../utils/symbols";
-import { getChildType } from "../../shared/childtype";
 import { stringify } from "@iarna/toml";
 import {
   checkPythonIdentifierValidity,
@@ -78,6 +76,7 @@ import {
   MAIN_PYTHON_MODULE,
 } from "../utils/pythonSymbols";
 import { getLog } from "../utils/logging";
+import { getDescendantProperties } from "../../shared/nodeTypes";
 
 export class ConfigDetailsView implements WebviewViewProvider {
   private _view: WebviewView;
@@ -256,9 +255,15 @@ export class ConfigDetailsView implements WebviewViewProvider {
       propertyRange = getSymbol(symbols, nodeType, nodeName, propertyName).range;
     }
     let newVal: string | string[];
-    const linksProp = getDescendantProperties(nodeType).find((p) => p.toLowerCase() === propertyName?.toLowerCase());
-    if (linksProp) {
-      const childType = getChildType(nodeType);
+    const linksPropType = getDescendantProperties(nodeType)
+      .filter((p) => p)
+      .reduce((pv, cv) => {
+        Object.entries(cv).forEach((a) => pv.push(a));
+        return pv;
+      }, [])
+      .find(([p, c]) => p.toLowerCase() === propertyName?.toLowerCase());
+    if (linksPropType) {
+      const childType = linksPropType[1];
       const values = ((propertyValue || []) as string[]).map((v) => getUnsuffixedName(v.toLowerCase()));
       const childNames = getSymbol(symbols, childType).children.map(
         (s) =>
@@ -302,7 +307,11 @@ export class ConfigDetailsView implements WebviewViewProvider {
             } as QuickPickItem & { uri?: string; create?: boolean };
           });
           if (mainIdx > -1 && mainModule) {
-            items.splice(mainIdx, 0, {label: mainModule, uri: items[mainIdx].uri, picked: mainModule === currentModule});
+            items.splice(mainIdx, 0, {
+              label: mainModule,
+              uri: items[mainIdx].uri,
+              picked: mainModule === currentModule,
+            });
           }
           items.push({ label: "", kind: QuickPickItemKind.Separator });
           items.push({ label: l10n.t("New module name"), create: true });
@@ -430,32 +439,36 @@ export class ConfigDetailsView implements WebviewViewProvider {
     const tes = [TextEdit.replace(nameRange, newName)];
 
     // Apply change to references
-    const parentType = getParentType(nodeType);
-    if (parentType) {
-      const descProps = getDescendantProperties(parentType).filter((p) => p);
-      if (descProps.length) {
-        const oldNameRegexp = new RegExp(`(['"]${getUnsuffixedName(nodeName)}['":])`);
-        getSymbol(symbols, parentType).children.forEach((parentSymbol) => {
-          descProps.forEach((property) => {
-            const propSymbol = getSymbol(parentSymbol.children, property);
-            if (getSymbolArrayValue(doc, propSymbol)?.some((val) => nodeName === getUnsuffixedName(val))) {
-              for (let i = propSymbol.range.start.line; i <= propSymbol.range.end.line; i++) {
-                const line = doc.lineAt(i).text;
-                const res = oldNameRegexp.exec(line);
-                if (res) {
-                  const start = line.indexOf(res[1]) + 1;
-                  tes.push(
-                    TextEdit.replace(
-                      new Range(new Position(i, start), new Position(i, start + res[1].length - 2)),
-                      newName
-                    )
-                  );
+    const parentTypes = getParentTypes(nodeType);
+    if (parentTypes) {
+      parentTypes.forEach((parentType) => {
+        const descProps = getDescendantProperties(parentType).filter((p) => p);
+        if (descProps.length) {
+          const oldNameRegexp = new RegExp(`(['"]${getUnsuffixedName(nodeName)}['":])`);
+          getSymbol(symbols, parentType).children.forEach((parentSymbol) => {
+            descProps.forEach((desc) => {
+              Object.keys(desc).forEach((property) => {
+                const propSymbol = getSymbol(parentSymbol.children, property);
+                if (getSymbolArrayValue(doc, propSymbol)?.some((val) => nodeName === getUnsuffixedName(val))) {
+                  for (let i = propSymbol.range.start.line; i <= propSymbol.range.end.line; i++) {
+                    const line = doc.lineAt(i).text;
+                    const res = oldNameRegexp.exec(line);
+                    if (res) {
+                      const start = line.indexOf(res[1]) + 1;
+                      tes.push(
+                        TextEdit.replace(
+                          new Range(new Position(i, start), new Position(i, start + res[1].length - 2)),
+                          newName
+                        )
+                      );
+                    }
+                  }
                 }
-              }
-            }
+              });
+            });
           });
-        });
-      }
+        }
+      });
     }
 
     const we = new WorkspaceEdit();

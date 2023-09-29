@@ -33,8 +33,8 @@
 .diagram-button.task:hover {
     background-color: var(--taipy-task-color);
 }
-.diagram-button.pipeline:hover {
-    background-color: var(--taipy-pipeline-color);
+.diagram-button.sequence:hover {
+    background-color: var(--taipy-sequence-color);
 }
 .diagram-button.scenario:hover {
     background-color: var(--taipy-scenario-color);
