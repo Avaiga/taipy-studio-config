@@ -30,7 +30,7 @@ const nodeIcon: Record<string, string> = {
 };
 export const getNodeIcon = (nodeType: string) => nodeIcon[nodeType];
 
-export const nodeTypes = [DataNode, Sequence, Scenario, Task];
+export const nodeTypes = [DataNode, Scenario, Task];
 
 export const isRoot = (perspId: string) => perspId === perspectiveRootId;
 

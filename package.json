@@ -163,12 +163,6 @@
           "when": "taipy.config.numberOfConfigFiles > 0"
         },
         {
-          "id": "taipy-config-sequences",
-          "name": "%taipy.config.views.taipy-config-panel.taipy-config-sequences%",
-          "when": "taipy.config.numberOfConfigFiles > 0",
-          "visibility": "collapsed"
-        },
-        {
           "id": "taipy-config-scenarios",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-scenarios%",
           "when": "taipy.config.numberOfConfigFiles > 0",

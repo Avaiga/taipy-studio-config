@@ -53,11 +53,12 @@ import {
   SAVE_AS_PNG_URL,
   SAVE_DOCUMENT,
   SELECT,
+  SELECT_SEQUENCE,
   SET_EXTRA_ENTITIES,
   SET_POSITIONS,
   UPDATE_EXTRA_ENTITIES,
 } from "../../shared/commands";
-import { EditorAddNodeMessage, ViewMessage } from "../../shared/messages";
+import { EditorAddNodeMessage, EditorShowSequenceMessage, ViewMessage } from "../../shared/messages";
 import {
   CONFIG_EDITOR_ID,
   ConfigEditorProps,
@@ -85,7 +86,7 @@ import { ConfigDropEditProvider } from "../providers/DocumentDropEditProvider";
 import { getNodeNameValidationFunction } from "../utils/pythonSymbols";
 import { getLog } from "../utils/logging";
 import { getDefaultValues } from "../schema/validation";
-import { DataNode } from "../../shared/names";
+import { DataNode, Scenario } from "../../shared/names";
 import { getChildTypes, getDescendantProperties } from "../../shared/nodeTypes";
 
 interface EditorCache {
@@ -274,6 +275,24 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     }
   }
 
+  private selectSequence(scenarioName: string, sequence: string) {
+    for (const pps of Object.values(this.panelsByUri)) {
+      for (const [pId, ps] of Object.entries(pps)) {
+        const panel = ps && ps.find((p) => p.active);
+        if (panel && pId === `${Scenario}.${scenarioName}`) {
+          try {
+            panel.webview.postMessage({
+              sequence: sequence,
+            } as EditorShowSequenceMessage);
+          } catch (e) {
+            getLog().info("addNodeToCurrentDiagram: ", e.message || e);
+          }
+          return;
+        }
+      }
+    }
+  }
+
   async updateWebview(doc: TextDocument, isDirty = false) {
     const originalUri = getOriginalUri(doc.uri);
     const baseUri = originalUri.toString();
@@ -388,7 +407,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
         case SAVE_AS_PNG_URL:
           this.saveAsPng(e.url);
           break;
-      }
+        }
     }, this);
 
     // clean-up when our editor is closed.

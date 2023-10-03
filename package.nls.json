@@ -26,7 +26,6 @@
     "taipy.config.views.taipy-config-panel.taipy-configs": "Config files",
     "taipy.config.views.taipy-config-panel.taipy-config-datanodes": "Data Nodes",
     "taipy.config.views.taipy-config-panel.taipy-config-tasks": "Tasks",
-    "taipy.config.views.taipy-config-panel.taipy-config-sequences": "Sequences",
     "taipy.config.views.taipy-config-panel.taipy-config-scenarios": "Scenarios",
     "taipy.config.views.taipy-config-panel.taipy-config-auth": "Auth",
     "taipy.config.views.taipy-config-panel.taipy-config-details": "Details",

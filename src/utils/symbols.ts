@@ -13,8 +13,8 @@
 
 import { DocumentSymbol, SymbolKind, TextDocument, workspace } from "vscode";
 
-import { DisplayModel, Link, LinkName, Nodes, Positions } from "../../shared/diagram";
-import { DataNode, Scenario, Task, PROP_INPUTS, PROP_OUTPUTS, PROP_TASKS, PROP_DATANODES } from "../../shared/names";
+import { DisplayModel, Link, LinkName, Nodes, Positions, Sequences } from "../../shared/diagram";
+import { DataNode, Scenario, Task, PROP_INPUTS, PROP_OUTPUTS, PROP_TASKS, PROP_DATANODES, PROP_SEQUENCES } from "../../shared/names";
 import { getDescendantProperties } from "../../shared/nodeTypes";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "./constants";
 
@@ -105,6 +105,7 @@ const getSymbolValue = <T>(doc: TextDocument, symbol: DocumentSymbol, prop?: str
 export const toDisplayModel = (doc: TextDocument, symbols: DocumentSymbol[], positions?: Positions): DisplayModel => {
   const nodes = {} as Nodes;
   const links = [] as Link[];
+  const sequences = {} as Sequences;
   symbols.forEach((typeSymbol) => {
     if (!supportedNodeTypes[typeSymbol.name.toLowerCase()]) {
       return;
@@ -143,9 +144,13 @@ export const toDisplayModel = (doc: TextDocument, symbols: DocumentSymbol[], pos
             )
           )
         );
+      nameSymbol.children.filter(childSymbol => childSymbol.name === PROP_SEQUENCES).forEach(sequencesSymbol => {
+        sequences[nameSymbol.name] = {};
+        sequencesSymbol.children.forEach(seqSymbol => sequences[nameSymbol.name][seqSymbol.name] = getSymbolArrayValue(doc, seqSymbol) );
+      });
     });
   });
-  return { nodes, links };
+  return { nodes, links, sequences };
 };
 
 const getLink = (linkName: LinkName, positions?: Positions) => {

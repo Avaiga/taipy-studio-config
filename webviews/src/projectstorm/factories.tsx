@@ -11,13 +11,30 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { AbstractReactFactory, GenerateModelEvent, GenerateWidgetEvent, AbstractModelFactory } from "@projectstorm/react-canvas-core";
+import { AbstractReactFactory, GenerateModelEvent, GenerateWidgetEvent, AbstractModelFactory, DeserializeEvent, BaseEntityEvent } from "@projectstorm/react-canvas-core";
 import { DiagramEngine } from "@projectstorm/react-diagrams-core";
 import { DefaultNodeModel } from "@projectstorm/react-diagrams";
 import { TaipyPortModel } from "./models";
 import NodeWidget from "./NodeWidget";
 
-export class TaipyNodeFactory extends AbstractReactFactory<DefaultNodeModel, DiagramEngine> {
+export const ICON_CHANGED_EVENT = "iconChanged";
+
+export class TaipyNodeModel extends DefaultNodeModel {
+  extraIcon?: string;
+  setExtraIcon(extraIcon: string) {
+    this.extraIcon = extraIcon;
+    this.fireEvent({extraIcon: extraIcon}, ICON_CHANGED_EVENT);
+  }
+  serialize() {
+    return {...super.serialize(), extraIcon: this.extraIcon}
+  }
+  deserialize(event: DeserializeEvent<this>): void {
+    super.deserialize(event);
+    this.extraIcon = event.data.extraIcon;
+  }
+}
+
+export class TaipyNodeFactory extends AbstractReactFactory<TaipyNodeModel, DiagramEngine> {
   private perspective: string;
   constructor(nodeType: string) {
     super(nodeType);
@@ -28,12 +45,12 @@ export class TaipyNodeFactory extends AbstractReactFactory<DefaultNodeModel, Dia
     this.perspective = perspective;
   }
 
-  generateReactWidget(event: GenerateWidgetEvent<DefaultNodeModel>): JSX.Element {
+  generateReactWidget(event: GenerateWidgetEvent<TaipyNodeModel>): JSX.Element {
     return <NodeWidget engine={this.engine} node={event.model} perspective={this.perspective} />;
   }
 
-  generateModel(_: GenerateModelEvent): DefaultNodeModel {
-    return new DefaultNodeModel();
+  generateModel(_: GenerateModelEvent): TaipyNodeModel {
+    return new TaipyNodeModel();
   }
 }
 

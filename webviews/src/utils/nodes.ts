@@ -15,7 +15,7 @@ import { DisplayModel, Link, Nodes } from "../../../shared/diagram";
 import { DataNode, Scenario, Sequence, Task } from "../../../shared/names";
 import { isRoot } from "./config";
 
-const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: string) => {
+const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: string): DisplayModel => {
   if (!displayModel.nodes || !Array.isArray(displayModel.links)) {
     return displayModel;
   }
@@ -59,17 +59,17 @@ const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: strin
     }
     [nodeType, nodeName, follow] = queue.shift() || ["", "", false];
   }
-  return { nodes, links };
+  return { nodes, links, sequences: {} };
 };
 
-export const applyPerspective = (displayModel: DisplayModel, perspectiveId: string, extraEntities?: string): [any, string | undefined] => {
+export const applyPerspective = (displayModel: DisplayModel, perspectiveId: string, extraEntities?: string): [DisplayModel, string | undefined] => {
   if (!displayModel || isRoot(perspectiveId)) {
     return [displayModel, undefined];
   }
   const appliedEntities: string[] = [];
   const [nodeType, nodeName] = perspectiveId.split(".");
   const res = applyNode(displayModel, nodeType, nodeName);
-  delete res.nodes[perspectiveId.split(".")[0]];
+  delete res.nodes[nodeType];
   extraEntities &&
     extraEntities.split(";").forEach((e) => {
       const [nt, nn] = e.split(".", 2);
@@ -86,6 +86,9 @@ export const applyPerspective = (displayModel: DisplayModel, perspectiveId: stri
         res.links.push(...nodeRes.links);
       }
     });
+  if (displayModel.sequences[nodeName]) {
+    res.sequences[nodeName] = displayModel.sequences[nodeName]
+  }
   return [res, appliedEntities.length ? appliedEntities.join(";") : undefined];
 };
 

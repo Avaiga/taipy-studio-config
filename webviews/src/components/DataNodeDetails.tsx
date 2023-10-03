@@ -11,14 +11,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { Fragment, MouseEvent, useCallback } from "react";
+import { Fragment, MouseEvent, useCallback, useMemo } from "react";
 import * as l10n from "@vscode/l10n";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 
 import { postDeleteProperty, postEditNodeName, postEditProperty } from "../utils/messaging";
 import { DataNodeDetailsProps, WebDiag } from "../../../shared/views";
 
-const getAsString = (val: string | string[]) => (Array.isArray(val) ? (val as string[]).join(", ") : typeof val === "string" ? val : JSON.stringify(val));
+const getAsString = (val: string | string[]) =>
+  Array.isArray(val) ? (val as string[]).join(", ") : typeof val === "string" ? val : JSON.stringify(val);
 
 const getDiagContext = (diag: WebDiag) =>
   JSON.stringify({
@@ -41,23 +42,36 @@ const getDiagStyle = (diag: WebDiag) =>
     : { textDecorationLine: "underline" }) as React.CSSProperties;
 
 const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, allProps }: DataNodeDetailsProps) => {
+  const extras = useMemo(
+    () =>
+      Object.entries(node).reduce((o, [k, v]) => {
+        if (k.startsWith("__")) {
+          o[k.substring(2)] = v;
+        }
+        return o;
+      }, {} as typeof node),
+    [node]
+  );
+
   const editPropertyValue = useCallback(
     (evt: MouseEvent<HTMLElement>) => {
       const propertyName = evt.currentTarget.dataset.propertyName;
-      postEditProperty(nodeType, nodeName, propertyName, propertyName && node[propertyName]);
+      postEditProperty(nodeType, nodeName, propertyName, propertyName && node[propertyName], extras);
     },
-    [nodeType, nodeName, node]
+    [nodeType, nodeName, node, extras]
   );
 
   const deleteProperty = useCallback(
-    (evt: MouseEvent<HTMLElement>) => postDeleteProperty(nodeType, nodeName, evt.currentTarget.dataset.propertyName),
-    [nodeType, nodeName, node]
+    (evt: MouseEvent<HTMLElement>) =>
+      postDeleteProperty(nodeType, nodeName, evt.currentTarget.dataset.propertyName, extras),
+    [nodeType, nodeName, node, extras]
   );
 
-  const editNodeName = useCallback(() => postEditNodeName(nodeType, nodeName), [nodeType, nodeName]);
+  const editNodeName = useCallback(() => postEditNodeName(nodeType, nodeName, extras), [nodeType, nodeName, extras]);
 
   const sortProps = useCallback(
-    ([propa, _a]: [string, any], [propb, _b]: [string, any]) => orderedProps ? (orderedProps.indexOf(propa) - orderedProps.indexOf(propb)) : 0,
+    ([propa, _a]: [string, any], [propb, _b]: [string, any]) =>
+      orderedProps ? orderedProps.indexOf(propa) - orderedProps.indexOf(propb) : 0,
     [orderedProps]
   );
 
@@ -70,11 +84,16 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, al
         </h2>
         <div />
         {Object.entries(node)
+          .filter(([k]) => !k.startsWith("__"))
           .sort(sortProps)
           .map(([k, n]) => {
             const valProps =
               diagnostics && diagnostics[k]
-                ? { title: diagnostics[k].message, "data-vscode-context": getDiagContext(diagnostics[k]), style: getDiagStyle(diagnostics[k]) }
+                ? {
+                    title: diagnostics[k].message,
+                    "data-vscode-context": getDiagContext(diagnostics[k]),
+                    style: getDiagStyle(diagnostics[k]),
+                  }
                 : {};
             return (
               <Fragment key={k}>
@@ -82,7 +101,12 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, al
                 <div className="edit-value" {...valProps} data-property-name={k} onClick={editPropertyValue}>
                   {getAsString(n)}
                 </div>
-                <div className="panel-button icon" data-property-name={k} title={l10n.t("Delete")} onClick={deleteProperty}>
+                <div
+                  className="panel-button icon"
+                  data-property-name={k}
+                  title={l10n.t("Delete")}
+                  onClick={deleteProperty}
+                >
                   <i className="codicon codicon-trash"></i>
                 </div>
               </Fragment>
@@ -92,7 +116,8 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, al
           <>
             <div className="new-property">
               <VSCodeButton onClick={editPropertyValue}>
-                {l10n.t("Create new property")}&nbsp;<span className="codicon codicon-add" />
+                {l10n.t("Create new property")}&nbsp;
+                <span className="codicon codicon-add" />
               </VSCodeButton>
             </div>
           </>

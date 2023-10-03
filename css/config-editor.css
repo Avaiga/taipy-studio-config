@@ -18,6 +18,19 @@
     grid-template-rows: auto 1fr;
     height: 100vh;
 }
+.diagram-title {
+    display: flex;
+    gap: 1em;
+}
+.diagram-title select {
+    color: var(--vscode-menu-foreground);
+    background-color: var(--vscode-menu-background);
+}
+.diagram-icon {
+    font-size: 1em;
+    align-self: center;
+    color: var(--vscode-menu-foreground);
+}
 .diagram-button {
     font-size: 1.5em; /* like h2*/
     align-self: center;

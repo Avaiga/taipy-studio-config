@@ -65,18 +65,11 @@ const createCommandIdFromType = {
 export const getCreateCommandIdFromType = (nodeType: string) => createCommandIdFromType[nodeType];
 
 const hasSequences = (node: JsonMap) => !!node?.sequences;
-const getSequences = (node: JsonMap, baseUri: Uri) =>
-  node
-    ? Object.entries(node.sequences || {}).map(([k, v]) => {
-        const si = new SequenceItem(k, v);
-        si.setResourceUri(baseUri);
-        return si;
-      })
-    : [];
 
 export abstract class ConfigItem extends TreeItem {
   abstract getNodeType();
   baseUri: Uri;
+  parent: ConfigItem | undefined;
   constructor(name: string, private readonly node: JsonMap) {
     super(name, hasSequences(node) ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None);
     this.iconPath = "-";
@@ -106,6 +99,9 @@ export abstract class ConfigItem extends TreeItem {
   getChildren(): ConfigItem[] {
     return [];
   }
+  setParent(parent: ConfigItem) {
+    this.parent = parent;
+  }
 }
 export class DataNodeItem extends ConfigItem {
   getNodeType() {
@@ -130,7 +126,14 @@ export class ScenarioItem extends ConfigItem {
     return Scenario;
   }
   getChildren() {
-    return getSequences(this.getNode(), this.baseUri);
+    return this.getNode()
+      ? Object.entries(this.getNode().sequences || {}).map(([k, v]) => {
+          const si = new SequenceItem(k, { ["__" + Scenario]: this.label as string, tasks: v });
+          si.setParent(this);
+          si.setResourceUri(this.baseUri);
+          return si;
+        })
+      : [];
   }
 }
 
@@ -190,14 +193,16 @@ export class ConfigNodesProvider<T extends ConfigItem = ConfigItem>
   }
 
   getChildren(element?: T): Thenable<T[]> {
-    if (element || !this.configItems) {
-      return Promise.resolve(element ? (element.getChildren() as T[]) : []);
+    if (element) {
+      return Promise.resolve(element.getChildren() as T[]);
+    } else if (!this.configItems) {
+      return Promise.resolve([]);
     } else {
       return Promise.resolve(this.configItems);
     }
   }
 
   getParent(element: T): ProviderResult<T> {
-    return undefined;
+    return element.parent as T;
   }
 }
