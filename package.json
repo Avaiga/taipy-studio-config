@@ -128,6 +128,10 @@
         "command": "taipy.scenario.addSequence",
         "title": "%taipy.config.commands.taipy.scenario.addSequence%",
         "icon": "$(add)"
+      },
+      {
+        "command": "taipy.scenario.showSequence",
+        "title": "%taipy.config.commands.taipy.scenario.showSequence%"
       }
     ],
     "customEditors": [
@@ -266,6 +270,10 @@
           "command": "taipy.scenario.addSequence",
           "when": "taipy.config.diagram.visible && viewItem == SCENARIO && view == taipy-config-scenarios",
           "group": "inline"
+        },
+        {
+          "command": "taipy.scenario.showSequence",
+          "when": "taipy.config.diagram.visible && viewItem == SEQUENCE && view == taipy-config-scenarios"
         }
       ],
       "webview/context": [

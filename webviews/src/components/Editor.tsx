@@ -39,8 +39,7 @@ import {
 import { TaipyDiagramModel } from "../projectstorm/models";
 import { applySmallChanges } from "../utils/smallModelChanges";
 import { DisplayModel, NodeName, ScenarioSequence } from "../../../shared/diagram";
-import { Scenario, Sequence, Task } from "../../../shared/names";
-import { DefaultNodeModel } from "@projectstorm/react-diagrams";
+import { Sequence, Task } from "../../../shared/names";
 import { TaipyNodeModel } from "src/projectstorm/factories";
 
 const [engine, dagreEngine] = initDiagram();
@@ -96,11 +95,15 @@ const Editor = ({
     // Manage Post Message reception
     const messageListener = (event: MessageEvent) => {
       event.data?.editorMessage && showNode(engine, event.data as EditorAddNodeMessage);
-      event.data?.sequence && setSequence((event.data as EditorShowSequenceMessage).sequence);
+      if (event.data?.sequence) {
+        const seq = (event.data as EditorShowSequenceMessage).sequence;
+        setSequence(seq);
+        sequences && showSequence(sequences[seq]);
+      }
     };
     window.addEventListener("message", messageListener);
     return () => window.removeEventListener("message", messageListener);
-  }, []);
+  }, [sequences]);
 
   useEffect(() => {
     if (!displayModel || (perspectiveId === oldPerspId.current && deepEqual(oldDisplayModel.current, displayModel))) {

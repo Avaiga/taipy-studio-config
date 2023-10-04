@@ -47,7 +47,13 @@ import {
   TaskItem,
   TreeNodeCtor,
 } from "./providers/ConfigNodesProvider";
-import { PerspectiveContentProvider, PERSPECTIVE_SCHEME, isUriEqual, getOriginalUri, getPerspectiveUri } from "./providers/PerpectiveContentProvider";
+import {
+  PerspectiveContentProvider,
+  PERSPECTIVE_SCHEME,
+  isUriEqual,
+  getOriginalUri,
+  getPerspectiveUri,
+} from "./providers/PerpectiveContentProvider";
 import { ConfigEditorProvider } from "./editors/ConfigEditor";
 import { cleanDocumentDiagnostics, reportInconsistencies } from "./utils/errors";
 import { ValidateFunction } from "ajv/dist/2020";
@@ -107,7 +113,9 @@ export class Context {
     // Main Module Management
     MainModuleDecorationProvider.register(vsContext);
     // Perspective Provider
-    vsContext.subscriptions.push(workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider()));
+    vsContext.subscriptions.push(
+      workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider())
+    );
     // Create Tree Views
     this.treeViews.push(this.createTreeView(DataNodeItem));
     this.treeViews.push(this.createTreeView(TaskItem));
@@ -164,10 +172,17 @@ export class Context {
   private createTreeView<T extends ConfigItem>(nodeCtor: TreeNodeCtor<T>) {
     const provider = new ConfigNodesProvider(this, nodeCtor);
     const nodeType = provider.getNodeType();
-    commands.registerCommand(getRefreshCommandIdFromType(nodeType), () => provider.refresh(this, this.configFileUri), this);
+    commands.registerCommand(
+      getRefreshCommandIdFromType(nodeType),
+      () => provider.refresh(this, this.configFileUri),
+      this
+    );
     commands.registerCommand(getCreateCommandIdFromType(nodeType), () => this.createNewElement(nodeType), this);
     this.treeProviders.push(provider);
-    const treeView = window.createTreeView(getTreeViewIdFromType(nodeType), { treeDataProvider: provider, dragAndDropController: provider });
+    const treeView = window.createTreeView(getTreeViewIdFromType(nodeType), {
+      treeDataProvider: provider,
+      dragAndDropController: provider,
+    });
     return treeView;
   }
 
@@ -195,13 +210,17 @@ export class Context {
   }
 
   private onFilesWillBeRenamed(evt: FileWillRenameEvent) {
-    evt.files.forEach(({oldUri, newUri}) => evt.waitUntil(workspace.fs.stat(oldUri).then((stat) => {
-      if (stat.type === FileType.Directory) {
-        evt.waitUntil(this.directoryWillBeHandled(evt, oldUri, newUri, this.fileWillBeRenamed));
-      } else {
-        this.fileWillBeRenamed(oldUri, newUri);
-      }
-    })));
+    evt.files.forEach(({ oldUri, newUri }) =>
+      evt.waitUntil(
+        workspace.fs.stat(oldUri).then((stat) => {
+          if (stat.type === FileType.Directory) {
+            evt.waitUntil(this.directoryWillBeHandled(evt, oldUri, newUri, this.fileWillBeRenamed));
+          } else {
+            this.fileWillBeRenamed(oldUri, newUri);
+          }
+        })
+      )
+    );
   }
 
   private fileWillBeRenamed(oldUri: Uri, newUri: Uri) {
@@ -219,27 +238,47 @@ export class Context {
     }
   }
 
-  private directoryWillBeHandled(evt: FileWillDeleteEvent | FileWillRenameEvent, uri: Uri, newUri: Uri | undefined, fileHandling: (uri: Uri, newUri?: Uri) => void) {
-    return workspace.fs.readDirectory(uri).then(entries => entries.forEach(([fileName, fileType]) => {
-      if (fileType === FileType.Directory) {
-        evt.waitUntil(this.directoryWillBeHandled(evt, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName), fileHandling));
-      } else {
-        fileHandling.call(this, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName));
-      }
-    }), console.log);
+  private directoryWillBeHandled(
+    evt: FileWillDeleteEvent | FileWillRenameEvent,
+    uri: Uri,
+    newUri: Uri | undefined,
+    fileHandling: (uri: Uri, newUri?: Uri) => void
+  ) {
+    return workspace.fs.readDirectory(uri).then(
+      (entries) =>
+        entries.forEach(([fileName, fileType]) => {
+          if (fileType === FileType.Directory) {
+            evt.waitUntil(
+              this.directoryWillBeHandled(
+                evt,
+                Uri.joinPath(uri, fileName),
+                newUri && Uri.joinPath(newUri, fileName),
+                fileHandling
+              )
+            );
+          } else {
+            fileHandling.call(this, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName));
+          }
+        }),
+      console.log
+    );
   }
 
   private onFilesWillBeDeleted(evt: FileWillDeleteEvent) {
-    evt.files.forEach(uri => evt.waitUntil(workspace.fs.stat(uri).then((stat) => {
-      if (stat.type === FileType.Directory) {
-        evt.waitUntil(this.directoryWillBeHandled(evt, uri, undefined, this.fileWillBeDeleted));
-      } else {
-        this.fileWillBeDeleted(uri);
-      }
-    })));
+    evt.files.forEach((uri) =>
+      evt.waitUntil(
+        workspace.fs.stat(uri).then((stat) => {
+          if (stat.type === FileType.Directory) {
+            evt.waitUntil(this.directoryWillBeHandled(evt, uri, undefined, this.fileWillBeDeleted));
+          } else {
+            this.fileWillBeDeleted(uri);
+          }
+        })
+      )
+    );
   }
 
-  private fileWillBeDeleted(uri:  Uri) {
+  private fileWillBeDeleted(uri: Uri) {
     if (uri.path.endsWith(configFileExt)) {
       if (this.configFileUri?.toString() === uri.toString()) {
         this.configFileUri = undefined;
@@ -297,7 +336,14 @@ export class Context {
     this.configEditorProvider.updateElement(nodeType, oldNodeName, nodeName);
   }
 
-  private async selectConfigNode(nodeType: string, name: string, configNode: object, uri: Uri, reveal = true, fromInEditor = true): Promise<void> {
+  private async selectConfigNode(
+    nodeType: string,
+    name: string,
+    configNode: object,
+    uri: Uri,
+    reveal = true,
+    fromInEditor = true
+  ): Promise<void> {
     let updateCache = false;
     if (reveal || this.selectionCache.lastView === nodeType) {
       this.configDetailsView.setConfigNodeContent(nodeType, name, configNode, uri);
@@ -332,7 +378,9 @@ export class Context {
         }
       }
     }
-    const editors = window.visibleTextEditors.filter((te) => isUriEqual(docUri, te.document.uri) && te !== window.activeTextEditor); // don't reveal in the active editor
+    const editors = window.visibleTextEditors.filter(
+      (te) => isUriEqual(docUri, te.document.uri) && te !== window.activeTextEditor
+    ); // don't reveal in the active editor
     if (editors.length) {
       const doc = editors[0].document;
       const section = `[${nodeType}.${name}`;
@@ -357,8 +405,12 @@ export class Context {
     commands.executeCommand("vscode.openWith", item.resourceUri, ConfigEditorProvider.viewType);
   }
 
-  private showPerspectiveFromDiagram(item: { baseUri: string; nodeType: string, nodeName: string }) {
-    commands.executeCommand("vscode.openWith", getPerspectiveUri(Uri.parse(item.baseUri, true), `${item.nodeType}.${item.nodeName}`), ConfigEditorProvider.viewType);
+  private showPerspectiveFromDiagram(item: { baseUri: string; nodeType: string; nodeName: string }) {
+    commands.executeCommand(
+      "vscode.openWith",
+      getPerspectiveUri(Uri.parse(item.baseUri, true), `${item.nodeType}.${item.nodeName}`),
+      ConfigEditorProvider.viewType
+    );
   }
 
   private showPropertyLink(item: { baseUri: string }) {
@@ -366,7 +418,12 @@ export class Context {
   }
 
   private async renameNode(item: ConfigItem) {
-    this.configDetailsView.doRenameNode(getOriginalUri(item.resourceUri), item.contextValue, item.label as string, getExtras(item.getNode()));
+    this.configDetailsView.doRenameNode(
+      getOriginalUri(item.resourceUri),
+      item.contextValue,
+      item.label as string,
+      getExtras(item.getNode())
+    );
   }
 
   private async createSequenceForScenario(item: ConfigItem) {
@@ -393,7 +450,10 @@ export class Context {
 
   private async readSymbols(document: TextDocument) {
     cleanDocumentDiagnostics(document.uri);
-    const symbols = (await commands.executeCommand("vscode.executeDocumentSymbolProvider", document.uri)) as DocumentSymbol[];
+    const symbols = (await commands.executeCommand(
+      "vscode.executeDocumentSymbolProvider",
+      document.uri
+    )) as DocumentSymbol[];
     this.symbolsByUri[document.uri.toString()] = symbols || [];
     reportInconsistencies(document, symbols, null);
     return true;

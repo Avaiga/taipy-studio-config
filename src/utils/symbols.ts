@@ -146,7 +146,7 @@ export const toDisplayModel = (doc: TextDocument, symbols: DocumentSymbol[], pos
         );
       nameSymbol.children.filter(childSymbol => childSymbol.name === PROP_SEQUENCES).forEach(sequencesSymbol => {
         sequences[nameSymbol.name] = {};
-        sequencesSymbol.children.forEach(seqSymbol => sequences[nameSymbol.name][seqSymbol.name] = getSymbolArrayValue(doc, seqSymbol) );
+        sequencesSymbol.children.forEach(seqSymbol => sequences[nameSymbol.name][seqSymbol.name] = getSymbolArrayValue(doc, seqSymbol).map(t => getUnsuffixedName(t)) );
       });
     });
   });

@@ -139,8 +139,31 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       commands.registerCommand("taipy.diagram.addNode", this.addNodeToCurrentDiagram, this),
       commands.registerCommand("taipy.config.deleteNode", this.deleteConfigurationNode, this),
       commands.registerCommand("taipy.perspective.removeFromDiagram", this.removeNodeFromPerspective, this),
-      commands.registerCommand("taipy.perspective.duplicateNode", this.duplicateNode, this)
+      commands.registerCommand("taipy.perspective.duplicateNode", this.duplicateNode, this),
+      commands.registerCommand("taipy.scenario.showSequence", this.showSequenceInScenario, this)
     );
+  }
+
+  private async showSequenceInScenario(item: ConfigItem) {
+    const scenarioName = getExtras(item.getNode())[Scenario];
+    if (!scenarioName) {
+      return;
+    }
+    const pps = this.panelsByUri[getOriginalUri(item.resourceUri).toString()];
+    if (!pps) {
+      return;
+    }
+    const ps = pps[`${Scenario}.${scenarioName}`];
+    ps && ps.forEach(panel => {
+      try {
+        panel.webview.postMessage({
+          sequence: item.label,
+        } as EditorShowSequenceMessage);
+      } catch (e) {
+        getLog().info("showSequenceInScenario: ", e.message || e);
+      }
+
+    });
   }
 
   async createNewElement(uri: Uri, nodeType: string) {
@@ -269,24 +292,6 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
               nodeType: nodeType,
               nodeName: nodeName,
             } as EditorAddNodeMessage);
-          } catch (e) {
-            getLog().info("addNodeToCurrentDiagram: ", e.message || e);
-          }
-          return;
-        }
-      }
-    }
-  }
-
-  private selectSequence(scenarioName: string, sequence: string) {
-    for (const pps of Object.values(this.panelsByUri)) {
-      for (const [pId, ps] of Object.entries(pps)) {
-        const panel = ps && ps.find((p) => p.active);
-        if (panel && pId === `${Scenario}.${scenarioName}`) {
-          try {
-            panel.webview.postMessage({
-              sequence: sequence,
-            } as EditorShowSequenceMessage);
           } catch (e) {
             getLog().info("addNodeToCurrentDiagram: ", e.message || e);
           }

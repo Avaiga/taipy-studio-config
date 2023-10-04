@@ -272,6 +272,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       const nameSymbol = getSymbol(symbols, nodeType, nodeName);
       propertyRange = nameSymbol.range;
       const currentProps = nameSymbol.children.map((s) => s.name.toLowerCase());
+      currentProps.push(PROP_SEQUENCES);
       const properties = (await getProperties(nodeType)).filter((p) => !currentProps.includes(p.toLowerCase()));
       propertyName = await window.showQuickPick(properties, {
         canPickMany: false,

@@ -40,13 +40,7 @@ import {
   PropType,
 } from "../schema/validation";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
-import {
-  getPythonSuffix,
-  getSectionName,
-  getSymbol,
-  getSymbolArrayValue,
-  getUnsuffixedName,
-} from "../utils/symbols";
+import { getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getOriginalUri } from "./PerpectiveContentProvider";
 import { getCreateFunctionOrClassLabel, getModulesAndSymbols, MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
 import { getDescendantProperties } from "../../shared/nodeTypes";
@@ -79,7 +73,7 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
       // propose new property to current entity
       const symbols = this.taipyContext.getSymbols(getOriginalUri(document.uri).toString());
       // find 2nd level symbol (name) holding last line
-      const searchPos = position.with({ line: position.line - 1, character: 0 });
+      const searchPos = position.translate(-1).with(undefined, 0);
       const typeSymbol = symbols.find((s) => s.range.contains(searchPos));
       const nameSymbol = typeSymbol?.children.find((s) => s.range.contains(searchPos));
       const currentProps = nameSymbol?.children.map((s) => s.name);
@@ -93,9 +87,9 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
             const isArray = types[p] === PropType.array;
             const enums = enumProps.includes(p) && getEnum(p);
             const ci = new CompletionItem(p);
-            const si = new SnippetString(p + (isArray ? ' = [': ' = "'));
+            const si = new SnippetString(p + (isArray ? " = [" : ' = "'));
             enums ? si.appendChoice(enums) : si.appendTabstop();
-            isArray ? si.appendText(']\n'): si.appendText('"\n');
+            isArray ? si.appendText("]\n") : si.appendText('"\n');
             ci.insertText = si;
             return ci;
           });
@@ -112,9 +106,13 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
       props.push(...nodeTypes);
       return props.map((nodeType) => {
         const ci = new CompletionItem(nodeType);
-        ci.insertText = nodeTypes.includes(nodeType) ? (lineStart
-          ? new SnippetString(nodeType + ".").appendPlaceholder("element identifier")
-          : new SnippetString("[" + nodeType + ".").appendPlaceholder("element identifier").appendText("]\n")): (lineStart ? new SnippetString(nodeType) : new SnippetString(`[${nodeType}]`));
+        ci.insertText = nodeTypes.includes(nodeType)
+          ? lineStart
+            ? new SnippetString(nodeType + ".").appendPlaceholder("element identifier")
+            : new SnippetString("[" + nodeType + ".").appendPlaceholder("element identifier").appendText("]\n")
+          : lineStart
+          ? new SnippetString(nodeType)
+          : new SnippetString(`[${nodeType}]`);
         return ci;
       });
     }

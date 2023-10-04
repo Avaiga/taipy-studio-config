@@ -17,6 +17,7 @@
     "taipy.config.commands.taipy.config.deleteNode": "Taipy: Delete from configuration",
     "taipy.config.commands.taipy.config.renameNode": "Taipy: Rename",
     "taipy.config.commands.taipy.scenario.addSequence": "Taipy: Create New Sequence",
+    "taipy.config.commands.taipy.scenario.showSequence": "Taipy: Show Sequence in Diagram",
     "taipy.config.customEditors.taipy-config-editor": "Taipy Config Editor",
     "taipy.config.icon.theme.label": "Taipy product icon set",
     "taipy.config.viewsContainers.activitybar.taipy-config-panel": "Taipy Configs",
