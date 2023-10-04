@@ -15,7 +15,9 @@ import {
   commands,
   EventEmitter,
   l10n,
+  Position,
   ProviderResult,
+  TextEdit,
   TreeDataProvider,
   TreeItem,
   TreeItemCollapsibleState,
@@ -32,7 +34,12 @@ import { configFileExt, configFilePattern } from "../utils/utils";
 
 export const FILE_CONTEXT = "File";
 class ConfigFileItem extends TreeItem {
-  public constructor(baseName: string, readonly resourceUri: Uri, readonly tooltip: string, readonly description: string | null = null) {
+  public constructor(
+    baseName: string,
+    readonly resourceUri: Uri,
+    readonly tooltip: string,
+    readonly description: string | null = null
+  ) {
     super(baseName, TreeItemCollapsibleState.None);
     this.command = {
       command: selectConfigFileCmd,
@@ -136,14 +143,18 @@ export class ConfigFilesView {
     });
     if (newName) {
       const we = new WorkspaceEdit();
-      const newUri = Uri.joinPath(workspace.workspaceFolders[0].uri, newName.endsWith(configFileExt) ? newName : `${newName}${configFileExt}`);
+      const newUri = Uri.joinPath(
+        workspace.workspaceFolders[0].uri,
+        newName.endsWith(configFileExt) ? newName : `${newName}${configFileExt}`
+      );
       we.createFile(newUri);
+      we.set(newUri, [TextEdit.insert(new Position(0, 0), '[CORE]\ncore_version="3.0"\n')]);
       const self = this;
       workspace.applyEdit(we).then((applied) => applied && setTimeout(() => self.selectAndReveal(newUri), 500));
     }
   }
 
-  private selectAndReveal(uri:Uri) {
+  private selectAndReveal(uri: Uri) {
     this.context.selectConfigUri(uri);
     this.select(uri, true);
   }
