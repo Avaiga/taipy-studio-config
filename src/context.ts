@@ -34,7 +34,7 @@ import { ConfigFilesView, FILE_CONTEXT } from "./views/ConfigFilesView";
 import { revealConfigNodeCmd, selectConfigFileCmd, selectConfigNodeCmd } from "./utils/commands";
 import { CONFIG_DETAILS_ID, TAIPY_STUDIO_SETTINGS_NAME } from "./utils/constants";
 import { ConfigDetailsView } from "./providers/ConfigDetails";
-import { configFileExt } from "./utils/utils";
+import { configFileExt, getExtras } from "./utils/utils";
 import {
   ConfigItem,
   ConfigNodesProvider,
@@ -102,6 +102,7 @@ export class Context {
       commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this),
       commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this),
       commands.registerCommand("taipy.config.renameNode", this.renameNode, this),
+      commands.registerCommand("taipy.scenario.addSequence", this.createSequenceForScenario, this)
     );
     // Main Module Management
     MainModuleDecorationProvider.register(vsContext);
@@ -364,8 +365,12 @@ export class Context {
     commands.executeCommand("vscode.open", Uri.parse(item.baseUri, true));
   }
 
-  private async renameNode(item: TreeItem) {
-    this.configDetailsView.doRenameNode(getOriginalUri(item.resourceUri), item.contextValue, item.label as string);
+  private async renameNode(item: ConfigItem) {
+    this.configDetailsView.doRenameNode(getOriginalUri(item.resourceUri), item.contextValue, item.label as string, getExtras(item.getNode()));
+  }
+
+  private async createSequenceForScenario(item: ConfigItem) {
+    this.configDetailsView.createSequence(getOriginalUri(item.resourceUri), item.contextValue, item.label as string);
   }
 
   getSymbols(uri: string) {

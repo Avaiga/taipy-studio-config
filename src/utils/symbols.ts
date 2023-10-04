@@ -14,7 +14,7 @@
 import { DocumentSymbol, SymbolKind, TextDocument, workspace } from "vscode";
 
 import { DisplayModel, Link, LinkName, Nodes, Positions, Sequences } from "../../shared/diagram";
-import { DataNode, Scenario, Task, PROP_INPUTS, PROP_OUTPUTS, PROP_TASKS, PROP_DATANODES, PROP_SEQUENCES } from "../../shared/names";
+import { DataNode, Scenario, Task, PROP_INPUTS, PROP_OUTPUTS, PROP_TASKS, PROP_DATANODES, PROP_SEQUENCES, Sequence } from "../../shared/names";
 import { getDescendantProperties } from "../../shared/nodeTypes";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "./constants";
 
@@ -40,7 +40,7 @@ export const getPropertyToDropType = (nodeType: string) => dropByTypes[nodeType]
 
 const parentTypes: Record<string, string[]> = {
   [DataNode]: [Task, Scenario],
-  [Task]: [Scenario],
+  [Task]: [Scenario, Sequence],
 };
 export const getParentTypes = (nodeType: string) => parentTypes[nodeType] || [];
 

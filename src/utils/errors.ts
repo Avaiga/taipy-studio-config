@@ -22,14 +22,13 @@ import {
   SymbolKind,
   TextDocument,
   Uri,
-  window,
   workspace,
 } from "vscode";
 import { ErrorObject } from "ajv";
 
 import { getOriginalUri } from "../providers/PerpectiveContentProvider";
 import { getArrayFromText, getPythonSuffix, getSymbol, getUnsuffixedName } from "./symbols";
-import { DataNode, Sequence, Task } from "../../shared/names";
+import { DataNode, PROP_SEQUENCES, PROP_TASKS, Scenario, Sequence, Task } from "../../shared/names";
 import { getPythonReferences } from "../schema/validation";
 import { getMainPythonUri, MAIN_PYTHON_MODULE } from "./pythonSymbols";
 import { getLog } from "./logging";
@@ -80,6 +79,30 @@ export const reportInconsistencies = async (
             })
           );
         });
+        if (symbol.name === Scenario) {
+          symbol.children.forEach(scenarioSymbol => {
+            const tasksSymbol = getSymbol(scenarioSymbol.children, PROP_TASKS);
+            if (!tasksSymbol) {return;}
+            const value = doc.getText(tasksSymbol.range);
+            const tasks = getArrayFromText(value).map(t => getUnsuffixedName(t));
+            getSymbol(scenarioSymbol.children, PROP_SEQUENCES)?.children.forEach(seqSymbol => {
+              const startOffset = doc.offsetAt(seqSymbol.range.start);
+              const seqText = doc.getText(seqSymbol.range);
+              seqText && getArrayFromText(seqText).forEach(t => {
+                if (!tasks.includes(getUnsuffixedName(t))) {
+                  const startPos = doc.positionAt(startOffset + seqText.indexOf(t));
+                  diagnostics.push({
+                    severity: DiagnosticSeverity.Warning,
+                    range: new Range(startPos, startPos.translate(undefined, t.length)),
+                    message: l10n.t("Element '{0}.{1}' does not exist in {2}.{3}.{4}.", Task, getUnsuffixedName(t), Scenario, scenarioSymbol.name, PROP_TASKS),
+                    source: "Consistency checker",
+                  });
+
+                }
+              });
+            });
+          });
+        }
     });
     // Check the use of the elements
     symbols

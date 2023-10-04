@@ -149,7 +149,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
       const symbols = this.taipyContext.getSymbols(this.configUri.toString());
       if (this.nodeType === Sequence) {
         return this.addDiagnostic(
-          getSymbol(symbols, Scenario, node["_scenario"], PROP_SEQUENCES, name),
+          getSymbol(symbols, Scenario, node[`__${Scenario}`], PROP_SEQUENCES, name),
           diags,
           links,
           "tasks",
@@ -265,6 +265,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
     if (!symbols) {
       return;
     }
+    const isSequence = nodeType === Sequence;
     const insert = !propertyName;
     let propertyRange: Range;
     if (insert) {
@@ -280,7 +281,10 @@ export class ConfigDetailsView implements WebviewViewProvider {
         return;
       }
     } else {
-      propertyRange = getSymbol(symbols, nodeType, nodeName, propertyName).range;
+      propertyRange =
+        isSequence && extras
+          ? getSymbol(symbols, Scenario, extras[Scenario], PROP_SEQUENCES, nodeName).range
+          : getSymbol(symbols, nodeType, nodeName, propertyName).range;
     }
     let newVal: string | string[];
     const linksPropType = getDescendantProperties(nodeType)
@@ -289,7 +293,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
         Object.entries(cv).forEach((a) => pv.push(a));
         return pv;
       }, [])
-      .find(([p, c]) => p.toLowerCase() === propertyName?.toLowerCase());
+      .find(([p]) => p.toLowerCase() === propertyName?.toLowerCase());
     if (linksPropType) {
       const childType = linksPropType[1];
       const values = ((propertyValue || []) as string[]).map((v) => getUnsuffixedName(v.toLowerCase()));
@@ -437,15 +441,45 @@ export class ConfigDetailsView implements WebviewViewProvider {
     return this.doRenameNode(this.configUri, nodeType, nodeName, extras);
   }
 
+  async createSequence(uri: Uri, nodeType: string, nodeName: string) {
+    const symbols = this.taipyContext.getSymbols(uri.toString());
+    if (!symbols) {
+      return false;
+    }
+    const scenarioSymbol = getSymbol(symbols, nodeType, nodeName);
+    const parentSymbol = getSymbol(scenarioSymbol.children, PROP_SEQUENCES);
+    const seqs = parentSymbol ? parentSymbol.children.map((c) => c.name) : [];
+    let idx = 1;
+    while (seqs.includes(`${Sequence}_${idx}`)) {
+      idx++;
+    }
+    const newName = await window.showInputBox({
+      title: l10n.t("Enter new identifier for {0}", Sequence),
+      value: `${Sequence}_${idx}`,
+      validateInput: getNodeNameValidationFunction(parentSymbol),
+    });
+    if (newName === undefined || newName === nodeName) {
+      return false;
+    }
+    const range = parentSymbol ? parentSymbol.range : scenarioSymbol.range;
+    const text = parentSymbol
+      ? `${newName} = []\n`
+      : `\n[${nodeType}.${nodeName}.${PROP_SEQUENCES}]\n${newName} = []\n`;
+    const we = new WorkspaceEdit();
+    we.set(uri, [TextEdit.insert(range.end.translate(1), text)]);
+    return workspace.applyEdit(we);
+  }
+
   async doRenameNode(uri: Uri, nodeType: string, nodeName: string, extras?: Record<string, string>) {
     const symbols = this.taipyContext.getSymbols(uri.toString());
     if (!symbols) {
       return false;
     }
     const isSequence = nodeType === Sequence;
-    const parentSymbol = isSequence && extras
-      ? getSymbol(symbols, Scenario, extras[Scenario], PROP_SEQUENCES)
-      : getSymbol(symbols, nodeType);
+    const parentSymbol =
+      isSequence && extras
+        ? getSymbol(symbols, Scenario, extras[Scenario], PROP_SEQUENCES)
+        : getSymbol(symbols, nodeType);
     const newName = await window.showInputBox({
       title: l10n.t("Enter new identifier for {0}", nodeType),
       value: nodeName,
@@ -454,14 +488,16 @@ export class ConfigDetailsView implements WebviewViewProvider {
     if (newName === undefined || newName === nodeName) {
       return false;
     }
-    const blockRange = getSymbol([parentSymbol], PROP_SEQUENCES, nodeName).range;
+    const blockRange = getSymbol(parentSymbol.children, nodeName).range;
     const doc = await this.taipyContext.getDocFromUri(uri);
-    const text = doc.getText(blockRange);
-    const base = isSequence ? 0: text.indexOf(nodeType + ".");
+    const text = isSequence ? doc.lineAt(blockRange.start.line).text : doc.getText(blockRange);
+    const base = isSequence ? text.indexOf(nodeName) : text.indexOf(nodeType + ".");
     if (base === -1) {
       return false;
     }
-    const startPos = isSequence ? blockRange.start.with(undefined, 0) : blockRange.start.translate(undefined, base + nodeType.length + 1);
+    const startPos = isSequence
+      ? blockRange.start.with(undefined, base)
+      : blockRange.start.translate(undefined, base + nodeType.length + 1);
     const nameRange = blockRange.with({ start: startPos, end: startPos.translate(undefined, nodeName.length) });
 
     if (this.nodeType === nodeType && this.nodeName === nodeName) {
@@ -470,44 +506,77 @@ export class ConfigDetailsView implements WebviewViewProvider {
     const tes = [TextEdit.replace(nameRange, newName)];
 
     if (!isSequence) {
+      const seqSymbol = nodeType === Scenario && getSymbol(parentSymbol.children, nodeName, PROP_SEQUENCES);
+      if (seqSymbol) {
+        const text = doc.lineAt(seqSymbol.range.start.line).text;
+        const base = text.indexOf(`${nodeType}.${nodeName}.`);
+        if (base > -1) {
+          const start = seqSymbol.range.start.with(undefined, base + nodeType.length + 1);
+          const nameRange = seqSymbol.range.with(start, start.translate(undefined, nodeName.length));
+          tes.push(TextEdit.replace(nameRange, newName));
+        }
+      }
       this.taipyContext.updateElement(nodeType, nodeName, newName);
       // Apply change to references
       const parentTypes = getParentTypes(nodeType);
-      if (parentTypes) {
+      parentTypes &&
         parentTypes.forEach((parentType) => {
           const descProps = getDescendantProperties(parentType).filter((p) => p);
           if (descProps.length) {
             const oldNameRegexp = new RegExp(`(['"]${getUnsuffixedName(nodeName)}['":])`);
-            getSymbol(symbols, parentType).children.forEach((parentSymbol) => {
-              descProps.forEach((desc) => {
-                Object.keys(desc).forEach((property) => {
-                  const propSymbol = getSymbol(parentSymbol.children, property);
-                  if (getSymbolArrayValue(doc, propSymbol)?.some((val) => nodeName === getUnsuffixedName(val))) {
-                    for (let i = propSymbol.range.start.line; i <= propSymbol.range.end.line; i++) {
-                      const line = doc.lineAt(i).text;
-                      const res = oldNameRegexp.exec(line);
-                      if (res) {
-                        const start = line.indexOf(res[1]) + 1;
-                        tes.push(
-                          TextEdit.replace(
-                            new Range(new Position(i, start), new Position(i, start + res[1].length - 2)),
-                            newName
-                          )
-                        );
-                      }
-                    }
-                  }
+            if (parentType !== Sequence) {
+              getSymbol(symbols, parentType).children.forEach((parentSymbol) => {
+                descProps.forEach((desc) => {
+                  Object.keys(desc).forEach((property) => {
+                    this.replaceSymbol(
+                      doc,
+                      getSymbol(parentSymbol.children, property),
+                      nodeName,
+                      newName,
+                      oldNameRegexp,
+                      tes
+                    );
+                  });
                 });
               });
-            });
+            } else {
+              getSymbol(symbols, Scenario)
+                .children.map((c) => {
+                  const seqs = getSymbol(c.children, PROP_SEQUENCES);
+                  return seqs ? seqs.children : [];
+                })
+                .flat()
+                .forEach((propSymbol) => this.replaceSymbol(doc, propSymbol, nodeName, newName, oldNameRegexp, tes));
+            }
           }
         });
-      }
     }
 
     const we = new WorkspaceEdit();
     we.set(uri, tes);
     return workspace.applyEdit(we);
+  }
+
+  private replaceSymbol(
+    doc: TextDocument,
+    propSymbol: DocumentSymbol,
+    nodeName: string,
+    newName: string,
+    re: RegExp,
+    textEdits: TextEdit[]
+  ) {
+    if (getSymbolArrayValue(doc, propSymbol)?.some((val) => nodeName === getUnsuffixedName(val))) {
+      for (let i = propSymbol.range.start.line; i <= propSymbol.range.end.line; i++) {
+        const line = doc.lineAt(i).text;
+        const res = re.exec(line);
+        if (res) {
+          const start = line.indexOf(res[1]) + 1;
+          textEdits.push(
+            TextEdit.replace(new Range(new Position(i, start), new Position(i, start + res[1].length - 2)), newName)
+          );
+        }
+      }
+    }
   }
 
   private getHtmlForWebview(webview: Webview) {

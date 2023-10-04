@@ -123,6 +123,11 @@
       {
         "command": "taipy.explorer.file.setMainModule",
         "title": "%taipy.config.commands.taipy.explorer.file.setMainModule%"
+      },
+      {
+        "command": "taipy.scenario.addSequence",
+        "title": "%taipy.config.commands.taipy.scenario.addSequence%",
+        "icon": "$(add)"
       }
     ],
     "customEditors": [
@@ -239,23 +244,28 @@
       "view/item/context": [
         {
           "command": "taipy.perspective.show",
-          "when": "view == taipy-configs || viewItem != default && view =~ /taipy-config-(sequences|scenarios)/"
+          "when": "view == taipy-configs || viewItem == SCENARIO && view == taipy-config-scenarios"
         },
         {
           "command": "taipy.diagram.addNode",
-          "when": "taipy.config.diagram.visible && viewItem != default && view =~ /taipy-config-(datanodes|tasks|sequences)/"
+          "when": "taipy.config.diagram.visible && viewItem != default && view =~ /taipy-config-(datanodes|tasks)/"
         },
         {
           "command": "taipy.config.deleteNode",
-          "when": "view =~ /taipy-config-(datanodes|tasks|sequences|scenarios)/"
+          "when": "view =~ /taipy-config-(datanodes|tasks|scenarios)/"
         },
         {
           "command": "taipy.config.renameNode",
-          "when": "view =~ /taipy-config-(datanodes|tasks|sequences|scenarios)/"
+          "when": "view =~ /taipy-config-(datanodes|tasks|scenarios)/"
         },
         {
           "command": "taipy.config.revealInExplorer",
           "when": "view == taipy-configs"
+        },
+        {
+          "command": "taipy.scenario.addSequence",
+          "when": "taipy.config.diagram.visible && viewItem == SCENARIO && view == taipy-config-scenarios",
+          "group": "inline"
         }
       ],
       "webview/context": [

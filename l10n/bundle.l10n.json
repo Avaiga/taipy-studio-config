@@ -17,6 +17,7 @@
   "Element {0} identifier should be a valid Python identifier and not 'default': '{1}'": "Element {0} identifier should be a valid Python identifier and not 'default': '{1}'",
   "Another {0} element has the identifier {1}": "Another {0} element has the identifier {1}",
   "Element '{0}.{1}' does not exist.": "Element '{0}.{1}' does not exist.",
+  "Element '{0}.{1}' does not exist in {2}.{3}.{4}.": "Element '{0}.{1}' does not exist in {2}.{3}.{4}.",
   "No reference to element '{0}.{1}'.": "No reference to element '{0}.{1}'.",
   "Python reference should include a module '{0}.{1}.{2}'.": "Python reference should include a module '{0}.{1}.{2}'.",
   "No symbol detection as we are not in the context of a workspace.": "No symbol detection as we are not in the context of a workspace.",

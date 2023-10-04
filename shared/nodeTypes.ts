@@ -10,12 +10,13 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-import { DataNode, Scenario, Task, PROP_INPUTS, PROP_OUTPUTS, PROP_TASKS, PROP_DATANODES } from "./names";
+import { DataNode, Scenario, Task, PROP_INPUTS, PROP_OUTPUTS, PROP_TASKS, PROP_DATANODES, Sequence } from "./names";
 
 type Descendant = Record<string, string> | undefined;
 const _descendantProperties: Record<string, [Descendant, Descendant]> = {
   [Scenario]: [undefined, { [PROP_TASKS]: Task, [PROP_DATANODES]: DataNode }],
   [Task]: [{ [PROP_INPUTS]: DataNode }, { [PROP_OUTPUTS]: DataNode }],
+  [Sequence]: [undefined, {[PROP_TASKS]: Task}]
 };
 export const getDescendantProperties = (nodeType: string) => _descendantProperties[nodeType] || [undefined, undefined];
 

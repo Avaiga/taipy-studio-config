@@ -32,7 +32,7 @@ import {
   WorkspaceEdit,
 } from "vscode";
 
-import { configFilePattern, getCspScriptSrc, getDefaultConfig, getNonce, joinPaths } from "../utils/utils";
+import { configFilePattern, getCspScriptSrc, getDefaultConfig, getExtras, getNonce, joinPaths } from "../utils/utils";
 import { revealConfigNodeCmd } from "../utils/commands";
 import {
   getCleanPerpsectiveUriString,
@@ -86,8 +86,9 @@ import { ConfigDropEditProvider } from "../providers/DocumentDropEditProvider";
 import { getNodeNameValidationFunction } from "../utils/pythonSymbols";
 import { getLog } from "../utils/logging";
 import { getDefaultValues } from "../schema/validation";
-import { DataNode, Scenario } from "../../shared/names";
+import { DataNode, PROP_SEQUENCES, Scenario, Sequence } from "../../shared/names";
 import { getChildTypes, getDescendantProperties } from "../../shared/nodeTypes";
+import { ConfigItem } from "../providers/ConfigNodesProvider";
 
 interface EditorCache {
   positions?: Positions;
@@ -188,15 +189,16 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     return this.cache[perspectiveUri];
   }
 
-  private async deleteConfigurationNode(item: TreeItem) {
-    return this.doDeleteConfigurationNode(item.contextValue, item.label as string, item.resourceUri);
+  private async deleteConfigurationNode(item: ConfigItem) {
+    return this.doDeleteConfigurationNode(item.contextValue, item.label as string, item.resourceUri, false, getExtras(item.getNode()));
   }
 
   private async doDeleteConfigurationNode(
     nodeType?: string,
     nodeName?: string,
     resourceUri?: Uri,
-    refreshOnFail?: boolean
+    refreshOnFail?: boolean,
+    extras?: Record<string, string>
   ) {
     const answer = await window.showWarningMessage(
       l10n.t(
@@ -211,14 +213,15 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       const uri = getOriginalUri(resourceUri);
       const realDocument = await this.taipyContext.getDocFromUri(uri);
       const symbols = this.taipyContext.getSymbols(uri.toString());
-      const nameSymbol = getSymbol(symbols, nodeType, nodeName);
+      const isSequence = nodeType === Sequence;
+      const nameSymbol = isSequence && extras ? getSymbol(symbols, Scenario, extras[Scenario], PROP_SEQUENCES, nodeName) : getSymbol(symbols, nodeType, nodeName);
       if (!nameSymbol) {
         if (refreshOnFail) {
           this.updateWebview(realDocument, realDocument.isDirty);
         }
         return false;
       }
-      const edits: TextEdit[] = [TextEdit.delete(nameSymbol.range)];
+      const edits: TextEdit[] = [TextEdit.delete(isSequence ? nameSymbol.range.with(nameSymbol.range.start.with(undefined, 0)) : nameSymbol.range)];
       await this.removeNodeLinks(realDocument, nodeType, nodeName, symbols, edits);
       const res = await this.applyEdits(realDocument.uri, edits);
       if (res) {
