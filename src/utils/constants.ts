@@ -21,3 +21,6 @@ export const TAIPY_STUDIO_SETTINGS_NAME = "taipyStudio";
 export const TAIPY_STUDIO_SETTINGS_CONFIG_NAME = TAIPY_STUDIO_SETTINGS_NAME + ".config";
 export const TAIPY_STUDIO_SETTINGS_MAIN_PYTHON = "mainPythonFile";
 export const TAIPY_STUDIO_SETTINGS_EXCLUDE_GLOB_PATTERN = "excludePythonGlobPattern";
+
+export const TAIPY_CORE_SHEMA_PACKAGE = "taipy.core.config";
+export const TAIPY_CORE_VERSION = "3.0";

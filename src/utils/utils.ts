@@ -44,7 +44,7 @@ export const getDefaultConfig = (webview: Webview, extensionUri: Uri) => {
 
 export const getPositionFragment = (pos: Position) => `L${pos.line + 1}C${pos.character}`;
 
-export const getFilesFromPythonPackages = (file: string, packages: string[]) => {
+export const getFileFromPythonPackages = (file: string, packages: string[]) => {
   return new Promise<Record<string, string>>((resolve, reject) => {
     commands
       .executeCommand(
@@ -52,9 +52,9 @@ export const getFilesFromPythonPackages = (file: string, packages: string[]) => 
         workspace.workspaceFolders?.map(({ uri }) => uri.fsPath)
       )
       .then(
-        (pythonPath: string) => doGetFilesFromPythonPackage(pythonPath, file, packages, resolve, reject),
+        (pythonPath: string) => doGetFileFromPythonPackage(pythonPath, file, packages, resolve, reject),
         () =>
-          doGetFilesFromPythonPackage(
+          doGetFileFromPythonPackage(
             workspace.getConfiguration("python").get("defaultInterpreterPath", "python"),
             file,
             packages,
@@ -65,7 +65,7 @@ export const getFilesFromPythonPackages = (file: string, packages: string[]) => 
   });
 };
 
-const doGetFilesFromPythonPackage = (
+const doGetFileFromPythonPackage = (
   pythonPath: string,
   file: string,
   packages: string[],
@@ -99,3 +99,5 @@ export const getExtras = (node: object) =>
         return o;
       }, {} as Record<string, string>)
     : {};
+
+export const getArrayText = (array?: string[], fn: (a:string) => string = (a: string) => a) => array?.length ? `[${'"' + array.map(fn).join('", "') + '"'}]` : '[]';

@@ -2,6 +2,8 @@
   "{0}: {1} from {2}": "{0}: {1} from {2}",
   "Can't parse package.json from {0}: {1}": "Can't parse package.json from {0}: {1}",
   "Can't read package.json from {0}: {1}": "Can't read package.json from {0}: {1}",
+  "Core version found ({0}) in the configuration is not compatible with the current version ({1}).\nWould you like to upgrade the configuration?": "Core version found ({0}) in the configuration is not compatible with the current version ({1}).\nWould you like to upgrade the configuration?",
+  "No Core version found in the configuration.\nWould you like to upgrade the configuration to {0}?": "No Core version found in the configuration.\nWould you like to upgrade the configuration to {0}?",
   "Select file": "Select file",
   "File name cannot be empty.": "File name cannot be empty.",
   "File name {0} already exists.": "File name {0} already exists.",

@@ -18,23 +18,27 @@ import {
   FileType,
   FileWillDeleteEvent,
   FileWillRenameEvent,
+  l10n,
+  Position,
   Range,
   TextDocument,
   TextDocumentChangeEvent,
+  TextEdit,
   TextEditorRevealType,
   TreeItem,
   TreeView,
   Uri,
   window,
   workspace,
+  WorkspaceEdit,
 } from "vscode";
 import { JsonMap } from "@iarna/toml";
 
 import { ConfigFilesView, FILE_CONTEXT } from "./views/ConfigFilesView";
 import { revealConfigNodeCmd, selectConfigFileCmd, selectConfigNodeCmd } from "./utils/commands";
-import { CONFIG_DETAILS_ID, TAIPY_STUDIO_SETTINGS_NAME } from "./utils/constants";
+import { CONFIG_DETAILS_ID, TAIPY_CORE_VERSION, TAIPY_STUDIO_SETTINGS_NAME } from "./utils/constants";
 import { ConfigDetailsView } from "./providers/ConfigDetails";
-import { configFileExt, getExtras } from "./utils/utils";
+import { configFileExt, getArrayText, getExtras } from "./utils/utils";
 import {
   ConfigItem,
   ConfigNodesProvider,
@@ -58,11 +62,12 @@ import { ConfigEditorProvider } from "./editors/ConfigEditor";
 import { cleanDocumentDiagnostics, reportInconsistencies } from "./utils/errors";
 import { ValidateFunction } from "ajv/dist/2020";
 import { getValidationFunction } from "./schema/validation";
-import { getSymbol } from "./utils/symbols";
+import { getSectionName, getSymbol, getSymbolArrayValue, getSymbolValue, getUnsuffixedName } from "./utils/symbols";
 import { PythonCodeActionProvider } from "./providers/PythonCodeActionProvider";
 import { PythonLinkProvider } from "./providers/PythonLinkProvider";
 import { getLog } from "./utils/logging";
 import { MainModuleDecorationProvider } from "./providers/MainModuleDecorationProvider";
+import { PROP_SEQUENCES, PROP_TASKS, Scenario } from "../shared/names";
 
 const configNodeKeySort = (a: DocumentSymbol, b: DocumentSymbol) =>
   a === b ? 0 : a.name === "default" ? -1 : b.name === "default" ? 1 : a.name > b.name ? 1 : -1;
@@ -324,6 +329,102 @@ export class Context {
     return workspace.openTextDocument(getOriginalUri(uri));
   }
 
+  private async checkCoreVersion(doc: TextDocument) {
+    const symbols = this.getSymbols(doc.uri.toString());
+    const versionSymbol = getSymbol(symbols, "CORE", "core_version");
+    let foundVersion: string;
+    if (versionSymbol) {
+      foundVersion = getSymbolValue(doc, versionSymbol) as string;
+      if (foundVersion && foundVersion.split(".", 2)[0] === TAIPY_CORE_VERSION.split(".", 2)[0]) {
+        return;
+      }
+    }
+    const answer = await window.showWarningMessage(
+      foundVersion
+        ? l10n.t(
+            "Core version found ({0}) in the configuration is not compatible with the current version ({1}).\nWould you like to upgrade the configuration?",
+            foundVersion,
+            TAIPY_CORE_VERSION
+          )
+        : l10n.t(
+            "No Core version found in the configuration.\nWould you like to upgrade the configuration to {0}?",
+            TAIPY_CORE_VERSION
+          ),
+      "Yes",
+      "No"
+    );
+    if (answer === "Yes") {
+      const edits: TextEdit[] = [];
+      if (versionSymbol) {
+        edits.push(TextEdit.replace(versionSymbol.range, `"${TAIPY_CORE_VERSION}"`));
+      } else {
+        const coreSymbol = getSymbol(symbols, "CORE");
+        if (coreSymbol) {
+          edits.push(
+            TextEdit.insert(
+              coreSymbol.range.start.translate(1).with(undefined, 0),
+              `core_version = "${TAIPY_CORE_VERSION}"\n`
+            )
+          );
+        } else {
+          edits.push(TextEdit.insert(new Position(0, 0), `[CORE]\ncore_version = "${TAIPY_CORE_VERSION}"\n`));
+        }
+      }
+      const scenarios = getSymbol(symbols, Scenario)?.children;
+      if (scenarios?.length) {
+        const getSectionnedName = (a: string) => getSectionName(a);
+        const pipelines = getSymbol(symbols, "PIPELINE")?.children;
+        if (pipelines?.length) {
+          const pipelineTasks: Record<string, string[]> = {};
+          pipelines.forEach(
+            (p) => (pipelineTasks[p.name] = getSymbolArrayValue(doc, p, PROP_TASKS).map((t) => getUnsuffixedName(t)))
+          );
+          scenarios.forEach((scenarioSymbol) => {
+            const pipelines = getSymbolArrayValue(doc, scenarioSymbol, "pipelines").map((p) => getUnsuffixedName(p));
+            const tasksSymbol = getSymbol(scenarioSymbol.children, PROP_TASKS);
+            const tasks = new Set(
+              tasksSymbol ? getSymbolArrayValue(doc, tasksSymbol).map((t) => getUnsuffixedName(t)) : []
+            );
+            const sequencesSymbol = getSymbol(scenarioSymbol.children, PROP_SEQUENCES);
+            const sequences: string[] = [];
+            pipelines.forEach((p) => {
+              (pipelineTasks[p] || []).forEach((t) => tasks.add(t));
+              const seqSymbol = sequencesSymbol && getSymbol(sequencesSymbol.children, p);
+              if (!seqSymbol) {
+                sequences.push(`${p} = ${getArrayText(pipelineTasks[p], getSectionnedName)}`);
+              }
+            });
+            (!tasksSymbol || pipelines.length) &&
+              edits.push(
+                tasksSymbol
+                  ? TextEdit.replace(tasksSymbol.range, getArrayText(Array.from(tasks), getSectionnedName))
+                  : TextEdit.insert(
+                      scenarioSymbol.range.start.translate(1).with(undefined, 0),
+                      `${PROP_TASKS} = ${getArrayText(Array.from(tasks), getSectionnedName)}\n`
+                    )
+              );
+            edits.push(
+              TextEdit.insert(
+                (sequencesSymbol ? sequencesSymbol.range.start : scenarioSymbol.range.end)
+                  .translate(1)
+                  .with(undefined, 0),
+                (sequencesSymbol ? "" : `\n[${Scenario}.${scenarioSymbol.name}.${PROP_SEQUENCES}]\n`) +
+                  sequences.join("\n") +
+                  (sequences.length ? "\n" : "")
+              )
+            );
+          });
+        }
+      }
+      if (edits.length) {
+        const we = new WorkspaceEdit();
+        we.set(doc.uri, edits);
+        return workspace.applyEdit(we);
+      }
+    }
+    return false;
+  }
+
   private async unselectConfigNode(): Promise<void> {
     this.configDetailsView.setEmptyContent();
   }
@@ -444,7 +545,9 @@ export class Context {
   async readSymbolsIfNeeded(document: TextDocument) {
     const uri = document.uri.toString();
     if (!this.symbolsByUri[uri]) {
-      await this.readSymbols(document);
+      if (await this.readSymbols(document)) {
+        this.checkCoreVersion(document);
+      }
     }
   }
 

@@ -88,7 +88,7 @@ export const getArrayFromText = (text: string) => {
 export const getSymbolArrayValue = (doc: TextDocument, symbol: DocumentSymbol, prop?: string) =>
   (getSymbolValue(doc, symbol, prop) as string[]) || [];
 
-const getSymbolValue = <T>(doc: TextDocument, symbol: DocumentSymbol, prop?: string) => {
+export const getSymbolValue = (doc: TextDocument, symbol: DocumentSymbol, prop?: string) => {
   const propSymbol = prop ? symbol?.children.find((s) => s.name === prop) : symbol;
   if (propSymbol) {
     if (propSymbol.kind === SymbolKind.Array) {

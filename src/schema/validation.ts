@@ -15,8 +15,8 @@ import { JsonMap } from "@iarna/toml";
 import Ajv, { Schema, SchemaObject, ValidateFunction } from "ajv/dist/2020";
 import { l10n, Uri, workspace } from "vscode";
 
-import { getFilesFromPythonPackages } from "../utils/utils";
-import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
+import { getFileFromPythonPackages } from "../utils/utils";
+import { TAIPY_CORE_SHEMA_PACKAGE, TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
 import { getLog } from "../utils/logging";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,11 +38,11 @@ export const getValidationSchema = async () => {
     schemaResolving = true;
     if (workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_NAME).get("config.useSchemaFromPackage", true)) {
       try {
-        const schemas = await getFilesFromPythonPackages("config.schema.json", ["taipy.core"]);
-        if (schemas && schemas["taipy.core"]) {
-          const content = await workspace.fs.readFile(Uri.file(schemas["taipy.core"]));
+        const schemas = await getFileFromPythonPackages("config.schema.json", [TAIPY_CORE_SHEMA_PACKAGE]);
+        if (schemas && schemas[TAIPY_CORE_SHEMA_PACKAGE]) {
+          const content = await workspace.fs.readFile(Uri.file(schemas[TAIPY_CORE_SHEMA_PACKAGE]));
           validationSchema = JSON.parse(Buffer.from(content).toString("utf8"));
-          getLog().info(l10n.t("Using TOML Schema Validation from {0}", schemas["taipy.core"]));
+          getLog().info(l10n.t("Using TOML Schema Validation from {0}", schemas[TAIPY_CORE_SHEMA_PACKAGE]));
         }
       } catch (e) {
         getLog().warn(l10n.t("Validation Schema not found in package. {0}", e.message || e));

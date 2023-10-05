@@ -31,6 +31,7 @@ import {
 import { selectConfigFileCmd } from "../utils/commands";
 import { Context } from "../context";
 import { configFileExt, configFilePattern } from "../utils/utils";
+import { TAIPY_CORE_VERSION } from "../utils/constants";
 
 export const FILE_CONTEXT = "File";
 class ConfigFileItem extends TreeItem {
@@ -148,7 +149,7 @@ export class ConfigFilesView {
         newName.endsWith(configFileExt) ? newName : `${newName}${configFileExt}`
       );
       we.createFile(newUri);
-      we.set(newUri, [TextEdit.insert(new Position(0, 0), '[CORE]\ncore_version="3.0"\n')]);
+      we.set(newUri, [TextEdit.insert(new Position(0, 0), `[CORE]\ncore_version="${TAIPY_CORE_VERSION}"\n`)]);
       const self = this;
       workspace.applyEdit(we).then((applied) => applied && setTimeout(() => self.selectAndReveal(newUri), 500));
     }
