@@ -3,7 +3,7 @@
   "displayName": "Taipy Studio Configuration Builder",
   "description": "Visual Studio Code extension for Taipy: Configuration Builder",
   "publisher": "Taipy",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "homepage": "https://github.com/Avaiga/taipy-studio-config.git",
   "repository": {
     "type": "git",
@@ -71,6 +71,16 @@
         "icon": "$(copy)"
       },
       {
+        "command": "taipy.perspective.removeFromSequence",
+        "title": "%taipy.config.commands.taipy.perspective.removeFromSequence%",
+        "icon": "$(delete)"
+      },
+      {
+        "command": "taipy.perspective.addToSequence",
+        "title": "%taipy.config.commands.taipy.perspective.addToSequence%",
+        "icon": "$(add)"
+      },
+      {
         "command": "taipy.diagram.addNode",
         "title": "%taipy.config.commands.taipy.diagram.addNode%",
         "icon": "$(add)"
@@ -96,8 +106,8 @@
         "icon": "$(add)"
       },
       {
-        "command": "taipy.config.pipeline.create",
-        "title": "%taipy.config.commands.taipy.config.pipeline.create%",
+        "command": "taipy.config.sequence.create",
+        "title": "%taipy.config.commands.taipy.config.sequence.create%",
         "icon": "$(add)"
       },
       {
@@ -123,6 +133,15 @@
       {
         "command": "taipy.explorer.file.setMainModule",
         "title": "%taipy.config.commands.taipy.explorer.file.setMainModule%"
+      },
+      {
+        "command": "taipy.scenario.addSequence",
+        "title": "%taipy.config.commands.taipy.scenario.addSequence%",
+        "icon": "$(add)"
+      },
+      {
+        "command": "taipy.scenario.showSequence",
+        "title": "%taipy.config.commands.taipy.scenario.showSequence%"
       }
     ],
     "customEditors": [
@@ -163,12 +182,6 @@
           "when": "taipy.config.numberOfConfigFiles > 0"
         },
         {
-          "id": "taipy-config-pipelines",
-          "name": "%taipy.config.views.taipy-config-panel.taipy-config-pipelines%",
-          "when": "taipy.config.numberOfConfigFiles > 0",
-          "visibility": "collapsed"
-        },
-        {
           "id": "taipy-config-scenarios",
           "name": "%taipy.config.views.taipy-config-panel.taipy-config-scenarios%",
           "when": "taipy.config.numberOfConfigFiles > 0",
@@ -201,8 +214,8 @@
         "contents": "%taipy.config.viewsWelcome.taipy-config-tasks%"
       },
       {
-        "view": "taipy-config-pipelines",
-        "contents": "%taipy.config.viewsWelcome.taipy-config-pipelines%"
+        "view": "taipy-config-sequences",
+        "contents": "%taipy.config.viewsWelcome.taipy-config-sequences%"
       },
       {
         "view": "taipy-config-scenarios",
@@ -227,8 +240,8 @@
           "group": "navigation"
         },
         {
-          "command": "taipy.config.pipeline.create",
-          "when": "view == taipy-config-pipelines",
+          "command": "taipy.config.sequence.create",
+          "when": "view == taipy-config-sequences",
           "group": "navigation"
         },
         {
@@ -245,29 +258,38 @@
       "view/item/context": [
         {
           "command": "taipy.perspective.show",
-          "when": "view == taipy-configs || viewItem != default && view =~ /taipy-config-(pipelines|scenarios)/"
+          "when": "view == taipy-configs || viewItem == SCENARIO && view == taipy-config-scenarios"
         },
         {
           "command": "taipy.diagram.addNode",
-          "when": "taipy.config.diagram.visible && viewItem != default && view =~ /taipy-config-(datanodes|tasks|pipelines)/"
+          "when": "taipy.config.diagram.visible && viewItem != default && view =~ /taipy-config-(datanodes|tasks)/"
         },
         {
           "command": "taipy.config.deleteNode",
-          "when": "view =~ /taipy-config-(datanodes|tasks|pipelines|scenarios)/"
+          "when": "view =~ /taipy-config-(datanodes|tasks|scenarios)/"
         },
         {
           "command": "taipy.config.renameNode",
-          "when": "view =~ /taipy-config-(datanodes|tasks|pipelines|scenarios)/"
+          "when": "view =~ /taipy-config-(datanodes|tasks|scenarios)/"
         },
         {
           "command": "taipy.config.revealInExplorer",
           "when": "view == taipy-configs"
+        },
+        {
+          "command": "taipy.scenario.addSequence",
+          "when": "taipy.config.diagram.visible && viewItem == SCENARIO && view == taipy-config-scenarios",
+          "group": "inline"
+        },
+        {
+          "command": "taipy.scenario.showSequence",
+          "when": "taipy.config.diagram.visible && viewItem == SEQUENCE && view == taipy-config-scenarios"
         }
       ],
       "webview/context": [
         {
           "command": "taipy.perspective.showFromDiagram",
-          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-persp$/"
+          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-persp/"
         },
         {
           "command": "taipy.perspective.removeFromDiagram",
@@ -276,6 +298,14 @@
         {
           "command": "taipy.perspective.duplicateNode",
           "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy-dup/"
+        },
+        {
+          "command": "taipy.perspective.removeFromSequence",
+          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-rmSeq/"
+        },
+        {
+          "command": "taipy.perspective.addToSequence",
+          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-addSeq/"
         },
         {
           "command": "taipy.details.showLink",
@@ -337,17 +367,17 @@
           "default": "taipy-icon-task",
           "description": "%taipy.config.settings.diagram.task.icon.desc%"
         },
-        "taipyStudio.diagram.pipeline.color": {
+        "taipyStudio.diagram.sequence.color": {
           "type": "string",
           "format": "color-hex",
           "default": "#08a87d",
-          "description": "%taipy.config.settings.diagram.pipeline.color.desc%"
+          "description": "%taipy.config.settings.diagram.sequence.color.desc%"
         },
-        "taipyStudio.diagram.pipeline.icon": {
+        "taipyStudio.diagram.sequence.icon": {
           "type": "string",
           "format": "icon",
-          "default": "taipy-icon-pipeline",
-          "description": "%taipy.config.settings.diagram.pipeline.icon.desc%"
+          "default": "taipy-icon-sequence",
+          "description": "%taipy.config.settings.diagram.sequence.icon.desc%"
         },
         "taipyStudio.diagram.scenario.color": {
           "type": "string",

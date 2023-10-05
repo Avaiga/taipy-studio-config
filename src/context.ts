@@ -18,23 +18,27 @@ import {
   FileType,
   FileWillDeleteEvent,
   FileWillRenameEvent,
+  l10n,
+  Position,
   Range,
   TextDocument,
   TextDocumentChangeEvent,
+  TextEdit,
   TextEditorRevealType,
   TreeItem,
   TreeView,
   Uri,
   window,
   workspace,
+  WorkspaceEdit,
 } from "vscode";
 import { JsonMap } from "@iarna/toml";
 
 import { ConfigFilesView, FILE_CONTEXT } from "./views/ConfigFilesView";
 import { revealConfigNodeCmd, selectConfigFileCmd, selectConfigNodeCmd } from "./utils/commands";
-import { CONFIG_DETAILS_ID, TAIPY_STUDIO_SETTINGS_NAME } from "./utils/constants";
+import { CONFIG_DETAILS_ID, TAIPY_CORE_VERSION, TAIPY_STUDIO_SETTINGS_NAME } from "./utils/constants";
 import { ConfigDetailsView } from "./providers/ConfigDetails";
-import { configFileExt } from "./utils/utils";
+import { configFileExt, getArrayText, getExtras } from "./utils/utils";
 import {
   ConfigItem,
   ConfigNodesProvider,
@@ -42,21 +46,28 @@ import {
   getCreateCommandIdFromType,
   getRefreshCommandIdFromType,
   getTreeViewIdFromType,
-  PipelineItem,
+  SequenceItem,
   ScenarioItem,
   TaskItem,
   TreeNodeCtor,
 } from "./providers/ConfigNodesProvider";
-import { PerspectiveContentProvider, PERSPECTIVE_SCHEME, isUriEqual, getOriginalUri, getPerspectiveUri } from "./providers/PerpectiveContentProvider";
+import {
+  PerspectiveContentProvider,
+  PERSPECTIVE_SCHEME,
+  isUriEqual,
+  getOriginalUri,
+  getPerspectiveUri,
+} from "./providers/PerpectiveContentProvider";
 import { ConfigEditorProvider } from "./editors/ConfigEditor";
 import { cleanDocumentDiagnostics, reportInconsistencies } from "./utils/errors";
 import { ValidateFunction } from "ajv/dist/2020";
 import { getValidationFunction } from "./schema/validation";
-import { getSymbol } from "./utils/symbols";
+import { getSectionName, getSymbol, getSymbolArrayValue, getSymbolValue, getUnsuffixedName } from "./utils/symbols";
 import { PythonCodeActionProvider } from "./providers/PythonCodeActionProvider";
 import { PythonLinkProvider } from "./providers/PythonLinkProvider";
 import { getLog } from "./utils/logging";
 import { MainModuleDecorationProvider } from "./providers/MainModuleDecorationProvider";
+import { PROP_SEQUENCES, PROP_TASKS, Scenario } from "../shared/names";
 
 const configNodeKeySort = (a: DocumentSymbol, b: DocumentSymbol) =>
   a === b ? 0 : a.name === "default" ? -1 : b.name === "default" ? 1 : a.name > b.name ? 1 : -1;
@@ -102,15 +113,17 @@ export class Context {
       commands.registerCommand("taipy.perspective.showFromDiagram", this.showPerspectiveFromDiagram, this),
       commands.registerCommand("taipy.details.showLink", this.showPropertyLink, this),
       commands.registerCommand("taipy.config.renameNode", this.renameNode, this),
+      commands.registerCommand("taipy.scenario.addSequence", this.createSequenceForScenario, this)
     );
     // Main Module Management
     MainModuleDecorationProvider.register(vsContext);
     // Perspective Provider
-    vsContext.subscriptions.push(workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider()));
+    vsContext.subscriptions.push(
+      workspace.registerTextDocumentContentProvider(PERSPECTIVE_SCHEME, new PerspectiveContentProvider())
+    );
     // Create Tree Views
     this.treeViews.push(this.createTreeView(DataNodeItem));
     this.treeViews.push(this.createTreeView(TaskItem));
-    this.treeViews.push(this.createTreeView(PipelineItem));
     this.treeViews.push(this.createTreeView(ScenarioItem));
     // Dispose when finished
     vsContext.subscriptions.push(...this.treeViews);
@@ -164,10 +177,17 @@ export class Context {
   private createTreeView<T extends ConfigItem>(nodeCtor: TreeNodeCtor<T>) {
     const provider = new ConfigNodesProvider(this, nodeCtor);
     const nodeType = provider.getNodeType();
-    commands.registerCommand(getRefreshCommandIdFromType(nodeType), () => provider.refresh(this, this.configFileUri), this);
+    commands.registerCommand(
+      getRefreshCommandIdFromType(nodeType),
+      () => provider.refresh(this, this.configFileUri),
+      this
+    );
     commands.registerCommand(getCreateCommandIdFromType(nodeType), () => this.createNewElement(nodeType), this);
     this.treeProviders.push(provider);
-    const treeView = window.createTreeView(getTreeViewIdFromType(nodeType), { treeDataProvider: provider, dragAndDropController: provider });
+    const treeView = window.createTreeView(getTreeViewIdFromType(nodeType), {
+      treeDataProvider: provider,
+      dragAndDropController: provider,
+    });
     return treeView;
   }
 
@@ -195,13 +215,17 @@ export class Context {
   }
 
   private onFilesWillBeRenamed(evt: FileWillRenameEvent) {
-    evt.files.forEach(({oldUri, newUri}) => evt.waitUntil(workspace.fs.stat(oldUri).then((stat) => {
-      if (stat.type === FileType.Directory) {
-        evt.waitUntil(this.directoryWillBeHandled(evt, oldUri, newUri, this.fileWillBeRenamed));
-      } else {
-        this.fileWillBeRenamed(oldUri, newUri);
-      }
-    })));
+    evt.files.forEach(({ oldUri, newUri }) =>
+      evt.waitUntil(
+        workspace.fs.stat(oldUri).then((stat) => {
+          if (stat.type === FileType.Directory) {
+            evt.waitUntil(this.directoryWillBeHandled(evt, oldUri, newUri, this.fileWillBeRenamed));
+          } else {
+            this.fileWillBeRenamed(oldUri, newUri);
+          }
+        })
+      )
+    );
   }
 
   private fileWillBeRenamed(oldUri: Uri, newUri: Uri) {
@@ -219,27 +243,47 @@ export class Context {
     }
   }
 
-  private directoryWillBeHandled(evt: FileWillDeleteEvent | FileWillRenameEvent, uri: Uri, newUri: Uri | undefined, fileHandling: (uri: Uri, newUri?: Uri) => void) {
-    return workspace.fs.readDirectory(uri).then(entries => entries.forEach(([fileName, fileType]) => {
-      if (fileType === FileType.Directory) {
-        evt.waitUntil(this.directoryWillBeHandled(evt, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName), fileHandling));
-      } else {
-        fileHandling.call(this, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName));
-      }
-    }), console.log);
+  private directoryWillBeHandled(
+    evt: FileWillDeleteEvent | FileWillRenameEvent,
+    uri: Uri,
+    newUri: Uri | undefined,
+    fileHandling: (uri: Uri, newUri?: Uri) => void
+  ) {
+    return workspace.fs.readDirectory(uri).then(
+      (entries) =>
+        entries.forEach(([fileName, fileType]) => {
+          if (fileType === FileType.Directory) {
+            evt.waitUntil(
+              this.directoryWillBeHandled(
+                evt,
+                Uri.joinPath(uri, fileName),
+                newUri && Uri.joinPath(newUri, fileName),
+                fileHandling
+              )
+            );
+          } else {
+            fileHandling.call(this, Uri.joinPath(uri, fileName), newUri && Uri.joinPath(newUri, fileName));
+          }
+        }),
+      console.log
+    );
   }
 
   private onFilesWillBeDeleted(evt: FileWillDeleteEvent) {
-    evt.files.forEach(uri => evt.waitUntil(workspace.fs.stat(uri).then((stat) => {
-      if (stat.type === FileType.Directory) {
-        evt.waitUntil(this.directoryWillBeHandled(evt, uri, undefined, this.fileWillBeDeleted));
-      } else {
-        this.fileWillBeDeleted(uri);
-      }
-    })));
+    evt.files.forEach((uri) =>
+      evt.waitUntil(
+        workspace.fs.stat(uri).then((stat) => {
+          if (stat.type === FileType.Directory) {
+            evt.waitUntil(this.directoryWillBeHandled(evt, uri, undefined, this.fileWillBeDeleted));
+          } else {
+            this.fileWillBeDeleted(uri);
+          }
+        })
+      )
+    );
   }
 
-  private fileWillBeDeleted(uri:  Uri) {
+  private fileWillBeDeleted(uri: Uri) {
     if (uri.path.endsWith(configFileExt)) {
       if (this.configFileUri?.toString() === uri.toString()) {
         this.configFileUri = undefined;
@@ -285,6 +329,102 @@ export class Context {
     return workspace.openTextDocument(getOriginalUri(uri));
   }
 
+  private async checkCoreVersion(doc: TextDocument) {
+    const symbols = this.getSymbols(doc.uri.toString());
+    const versionSymbol = getSymbol(symbols, "CORE", "core_version");
+    let foundVersion: string;
+    if (versionSymbol) {
+      foundVersion = getSymbolValue(doc, versionSymbol) as string;
+      if (foundVersion && foundVersion.split(".", 2)[0] === TAIPY_CORE_VERSION.split(".", 2)[0]) {
+        return;
+      }
+    }
+    const answer = await window.showWarningMessage(
+      foundVersion
+        ? l10n.t(
+            "Core version found ({0}) in the configuration is not compatible with the current version ({1}).\nWould you like to upgrade the configuration?",
+            foundVersion,
+            TAIPY_CORE_VERSION
+          )
+        : l10n.t(
+            "No Core version found in the configuration.\nWould you like to upgrade the configuration to {0}?",
+            TAIPY_CORE_VERSION
+          ),
+      "Yes",
+      "No"
+    );
+    if (answer === "Yes") {
+      const edits: TextEdit[] = [];
+      if (versionSymbol) {
+        edits.push(TextEdit.replace(versionSymbol.range, `"${TAIPY_CORE_VERSION}"`));
+      } else {
+        const coreSymbol = getSymbol(symbols, "CORE");
+        if (coreSymbol) {
+          edits.push(
+            TextEdit.insert(
+              coreSymbol.range.start.translate(1).with(undefined, 0),
+              `core_version = "${TAIPY_CORE_VERSION}"\n`
+            )
+          );
+        } else {
+          edits.push(TextEdit.insert(new Position(0, 0), `[CORE]\ncore_version = "${TAIPY_CORE_VERSION}"\n`));
+        }
+      }
+      const scenarios = getSymbol(symbols, Scenario)?.children;
+      if (scenarios?.length) {
+        const getSectionnedName = (a: string) => getSectionName(a);
+        const pipelines = getSymbol(symbols, "PIPELINE")?.children;
+        if (pipelines?.length) {
+          const pipelineTasks: Record<string, string[]> = {};
+          pipelines.forEach(
+            (p) => (pipelineTasks[p.name] = getSymbolArrayValue(doc, p, PROP_TASKS).map(getUnsuffixedName))
+          );
+          scenarios.forEach((scenarioSymbol) => {
+            const pipelines = getSymbolArrayValue(doc, scenarioSymbol, "pipelines").map(getUnsuffixedName);
+            const tasksSymbol = getSymbol(scenarioSymbol.children, PROP_TASKS);
+            const tasks = new Set(
+              tasksSymbol ? getSymbolArrayValue(doc, tasksSymbol).map(getUnsuffixedName) : []
+            );
+            const sequencesSymbol = getSymbol(scenarioSymbol.children, PROP_SEQUENCES);
+            const sequences: string[] = [];
+            pipelines.forEach((p) => {
+              (pipelineTasks[p] || []).forEach((t) => tasks.add(t));
+              const seqSymbol = sequencesSymbol && getSymbol(sequencesSymbol.children, p);
+              if (!seqSymbol) {
+                sequences.push(`${p} = ${getArrayText(pipelineTasks[p], getSectionnedName)}`);
+              }
+            });
+            (!tasksSymbol || pipelines.length) &&
+              edits.push(
+                tasksSymbol
+                  ? TextEdit.replace(tasksSymbol.range, getArrayText(Array.from(tasks), getSectionnedName))
+                  : TextEdit.insert(
+                      scenarioSymbol.range.start.translate(1).with(undefined, 0),
+                      `${PROP_TASKS} = ${getArrayText(Array.from(tasks), getSectionnedName)}\n`
+                    )
+              );
+            edits.push(
+              TextEdit.insert(
+                (sequencesSymbol ? sequencesSymbol.range.start : scenarioSymbol.range.end)
+                  .translate(1)
+                  .with(undefined, 0),
+                (sequencesSymbol ? "" : `\n[${Scenario}.${scenarioSymbol.name}.${PROP_SEQUENCES}]\n`) +
+                  sequences.join("\n") +
+                  (sequences.length ? "\n" : "")
+              )
+            );
+          });
+        }
+      }
+      if (edits.length) {
+        const we = new WorkspaceEdit();
+        we.set(doc.uri, edits);
+        return workspace.applyEdit(we);
+      }
+    }
+    return false;
+  }
+
   private async unselectConfigNode(): Promise<void> {
     this.configDetailsView.setEmptyContent();
   }
@@ -297,7 +437,14 @@ export class Context {
     this.configEditorProvider.updateElement(nodeType, oldNodeName, nodeName);
   }
 
-  private async selectConfigNode(nodeType: string, name: string, configNode: object, uri: Uri, reveal = true, fromInEditor = true): Promise<void> {
+  private async selectConfigNode(
+    nodeType: string,
+    name: string,
+    configNode: object,
+    uri: Uri,
+    reveal = true,
+    fromInEditor = true
+  ): Promise<void> {
     let updateCache = false;
     if (reveal || this.selectionCache.lastView === nodeType) {
       this.configDetailsView.setConfigNodeContent(nodeType, name, configNode, uri);
@@ -332,7 +479,9 @@ export class Context {
         }
       }
     }
-    const editors = window.visibleTextEditors.filter((te) => isUriEqual(docUri, te.document.uri) && te !== window.activeTextEditor); // don't reveal in the active editor
+    const editors = window.visibleTextEditors.filter(
+      (te) => isUriEqual(docUri, te.document.uri) && te !== window.activeTextEditor
+    ); // don't reveal in the active editor
     if (editors.length) {
       const doc = editors[0].document;
       const section = `[${nodeType}.${name}`;
@@ -357,16 +506,29 @@ export class Context {
     commands.executeCommand("vscode.openWith", item.resourceUri, ConfigEditorProvider.viewType);
   }
 
-  private showPerspectiveFromDiagram(item: { baseUri: string; nodeType: string, nodeName: string }) {
-    commands.executeCommand("vscode.openWith", getPerspectiveUri(Uri.parse(item.baseUri, true), `${item.nodeType}.${item.nodeName}`), ConfigEditorProvider.viewType);
+  private showPerspectiveFromDiagram(item: { baseUri: string; nodeType: string; nodeName: string }) {
+    commands.executeCommand(
+      "vscode.openWith",
+      getPerspectiveUri(Uri.parse(item.baseUri, true), `${item.nodeType}.${item.nodeName}`),
+      ConfigEditorProvider.viewType
+    );
   }
 
   private showPropertyLink(item: { baseUri: string }) {
     commands.executeCommand("vscode.open", Uri.parse(item.baseUri, true));
   }
 
-  private async renameNode(item: TreeItem) {
-    this.configDetailsView.doRenameNode(getOriginalUri(item.resourceUri), item.contextValue, item.label as string);
+  private async renameNode(item: ConfigItem) {
+    this.configDetailsView.doRenameNode(
+      getOriginalUri(item.resourceUri),
+      item.contextValue,
+      item.label as string,
+      getExtras(item.getNode())
+    );
+  }
+
+  private async createSequenceForScenario(item: ConfigItem) {
+    this.configDetailsView.createSequence(getOriginalUri(item.resourceUri), item.contextValue, item.label as string);
   }
 
   getSymbols(uri: string) {
@@ -383,13 +545,18 @@ export class Context {
   async readSymbolsIfNeeded(document: TextDocument) {
     const uri = document.uri.toString();
     if (!this.symbolsByUri[uri]) {
-      await this.readSymbols(document);
+      if (await this.readSymbols(document)) {
+        this.checkCoreVersion(document);
+      }
     }
   }
 
   private async readSymbols(document: TextDocument) {
     cleanDocumentDiagnostics(document.uri);
-    const symbols = (await commands.executeCommand("vscode.executeDocumentSymbolProvider", document.uri)) as DocumentSymbol[];
+    const symbols = (await commands.executeCommand(
+      "vscode.executeDocumentSymbolProvider",
+      document.uri
+    )) as DocumentSymbol[];
     this.symbolsByUri[document.uri.toString()] = symbols || [];
     reportInconsistencies(document, symbols, null);
     return true;

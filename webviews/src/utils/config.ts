@@ -11,13 +11,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { DataNode, Pipeline, Scenario, Task } from "../../../shared/names";
+import { DataNode, Sequence, Scenario, Task } from "../../../shared/names";
 import { perspectiveRootId } from "../../../shared/views";
 
 const nodeColor: Record<string, string> = {
   [DataNode]: "var(--taipy-datanode-color)",
   [Task]: "var(--taipy-task-color)",
-  [Pipeline]: "var(--taipy-pipeline-color)",
+  [Sequence]: "var(--taipy-sequence-color)",
   [Scenario]: "var(--taipy-scenario-color)",
 };
 export const getNodeColor = (nodeType: string) => nodeColor[nodeType] || "pink";
@@ -25,12 +25,12 @@ export const getNodeColor = (nodeType: string) => nodeColor[nodeType] || "pink";
 const nodeIcon: Record<string, string> = {
   [DataNode]: window.taipyConfig?.icons?.datanode,
   [Task]: window.taipyConfig?.icons?.task,
-  [Pipeline]: window.taipyConfig?.icons?.pipeline,
+  [Sequence]: window.taipyConfig?.icons?.sequence,
   [Scenario]: window.taipyConfig?.icons?.scenario,
 };
 export const getNodeIcon = (nodeType: string) => nodeIcon[nodeType];
 
-export const nodeTypes = [DataNode, Pipeline, Scenario, Task];
+export const nodeTypes = [DataNode, Scenario, Task];
 
 export const isRoot = (perspId: string) => perspId === perspectiveRootId;
 

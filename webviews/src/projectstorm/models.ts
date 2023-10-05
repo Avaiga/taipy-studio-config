@@ -14,8 +14,8 @@
 import { DefaultPortModel, DefaultPortModelOptions, DiagramModel, LinkModel, LinkModelGenerics, PortModelAlignment } from "@projectstorm/react-diagrams";
 
 import { IN_PORT_NAME, onLinkRemove, OUT_PORT_NAME } from "../utils/diagram";
-import { getChildType } from "../../../shared/childtype";
 import { DataNode, Task } from "../../../shared/names";
+import { getChildTypes } from "../../../shared/nodeTypes";
 
 export class TaipyDiagramModel extends DiagramModel {}
 
@@ -45,7 +45,7 @@ export class TaipyPortModel extends DefaultPortModel {
       return false;
     }
     // child type
-    if (port.getNode()?.getType() !== getChildType(this.getNode()?.getType())) {
+    if (getChildTypes(this.getNode()?.getType()).has(port.getNode()?.getType())) {
       // Task -> DataNode Link
       if (port.getNode().getType() !== Task || this.getNode().getType() !== DataNode) {
         return false;

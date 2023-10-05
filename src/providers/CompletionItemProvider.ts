@@ -26,23 +26,26 @@ import {
   workspace,
 } from "vscode";
 
-import { DataNode, Job, Pipeline, Scenario, Taipy, Task } from "../../shared/names";
-import { getChildType } from "../../shared/childtype";
+import { Core, DataNode, Job, Scenario, Taipy, Task } from "../../shared/names";
 import { Context } from "../context";
-import { calculatePythonSymbols, getEnum, getEnumProps, getProperties, isClass, isFunction } from "../schema/validation";
+import {
+  calculatePythonSymbols,
+  getEnum,
+  getEnumProps,
+  getProperties,
+  getPropertyType,
+  getPropertyTypes,
+  isClass,
+  isFunction,
+  PropType,
+} from "../schema/validation";
 import { TAIPY_STUDIO_SETTINGS_NAME } from "../utils/constants";
-import { getDescendantProperties, getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
+import { getPythonSuffix, getSectionName, getSymbol, getSymbolArrayValue, getUnsuffixedName } from "../utils/symbols";
 import { getOriginalUri } from "./PerpectiveContentProvider";
 import { getCreateFunctionOrClassLabel, getModulesAndSymbols, MAIN_PYTHON_MODULE } from "../utils/pythonSymbols";
+import { getDescendantProperties } from "../../shared/nodeTypes";
 
-const nodeTypes = [DataNode, Task, Pipeline, Scenario];
-const validLinks = nodeTypes.reduce((vl, nt) => {
-  getDescendantProperties(nt)
-    .filter((p) => p)
-    .forEach((p) => vl.push(p));
-  return vl;
-}, [] as string[]);
-
+const nodeTypes = [DataNode, Task, Scenario];
 export class ConfigCompletionItemProvider implements CompletionItemProvider<CompletionItem> {
   static register(taipyContext: Context) {
     return new ConfigCompletionItemProvider(taipyContext);
@@ -50,32 +53,43 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
 
   private constructor(private readonly taipyContext: Context) {}
 
-  async provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext) {
+  async provideCompletionItems(
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken,
+    context: CompletionContext
+  ) {
     if (context.triggerKind !== CompletionTriggerKind.Invoke) {
       return [];
     }
     const lineStart = document.getText(new Range(position.with({ character: 0 }), position)).trimEnd();
     const lineText = document.lineAt(position.line).text;
 
-    if ((position.character === 0 || !lineText.trim()) && position.line && !document.lineAt(position.line - 1).isEmptyOrWhitespace) {
+    if (
+      (position.character === 0 || !lineText.trim()) &&
+      position.line &&
+      !document.lineAt(position.line - 1).isEmptyOrWhitespace
+    ) {
       // propose new property to current entity
       const symbols = this.taipyContext.getSymbols(getOriginalUri(document.uri).toString());
       // find 2nd level symbol (name) holding last line
-      const searchPos = position.with({ line: position.line - 1, character: 0 });
+      const searchPos = position.translate(-1).with(undefined, 0);
       const typeSymbol = symbols.find((s) => s.range.contains(searchPos));
       const nameSymbol = typeSymbol?.children.find((s) => s.range.contains(searchPos));
       const currentProps = nameSymbol?.children.map((s) => s.name);
       if (currentProps) {
         const possibleProps = await getProperties(typeSymbol.name);
-        const proposedProps = possibleProps.filter((p) => !currentProps.includes(p));
+        const types = await getPropertyTypes(typeSymbol.name);
+        const proposedProps = possibleProps.filter((p) => types[p] !== PropType.object && !currentProps.includes(p));
         if (proposedProps.length) {
           const enumProps = await getEnumProps();
           return proposedProps.map((p) => {
+            const isArray = types[p] === PropType.array;
             const enums = enumProps.includes(p) && getEnum(p);
             const ci = new CompletionItem(p);
-            const si = new SnippetString(p + ' = "');
+            const si = new SnippetString(p + (isArray ? " = [" : ' = "'));
             enums ? si.appendChoice(enums) : si.appendTabstop();
-            si.appendText('"\n');
+            isArray ? si.appendText("]\n") : si.appendText('"\n');
             ci.insertText = si;
             return ci;
           });
@@ -87,31 +101,48 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
       // propose new entity
       const symbols = this.taipyContext.getSymbols(getOriginalUri(document.uri).toString());
       const props = getSymbol(symbols, Taipy) ? [] : [Taipy];
+      getSymbol(symbols, Core) || props.push(Core);
       getSymbol(symbols, Job) || props.push(Job);
       props.push(...nodeTypes);
       return props.map((nodeType) => {
         const ci = new CompletionItem(nodeType);
-        ci.insertText = lineStart
-          ? new SnippetString(nodeType + ".").appendPlaceholder("element identifier")
-          : new SnippetString("[" + nodeType + ".").appendPlaceholder("element identifier").appendText("]\n");
+        ci.insertText = nodeTypes.includes(nodeType)
+          ? lineStart
+            ? new SnippetString(nodeType + ".").appendPlaceholder("element identifier")
+            : new SnippetString("[" + nodeType + ".").appendPlaceholder("element identifier").appendText("]\n")
+          : lineStart
+          ? new SnippetString(nodeType)
+          : new SnippetString(`[${nodeType}]`);
         return ci;
       });
     }
     const lineSplit = lineStart.split(/\s+|=/);
-    const linkProp = validLinks.find((l) => lineSplit.includes(l));
-    if (linkProp) {
-      const symbols = this.taipyContext.getSymbols(getOriginalUri(document.uri).toString());
-      for (const typeSymbol of symbols) {
-        const childType = getChildType(typeSymbol.name);
+    let found = false;
+    const symbols = this.taipyContext.getSymbols(getOriginalUri(document.uri).toString());
+    for (const typeSymbol of symbols) {
+      const linkPropTypes: Array<[string, string]> = getDescendantProperties(typeSymbol.name)
+        .filter((p) => p)
+        .reduce((pv, cv) => {
+          Object.entries(cv)
+            .filter((a) => lineSplit.includes(a[0]))
+            .forEach((p) => pv.push(p));
+          return pv;
+        }, []);
+      for (const [linkProp, childType] of linkPropTypes) {
         const childTypeSymbol = childType && getSymbol(symbols, childType);
         if (!childTypeSymbol) {
-          continue;
+          return;
         }
         for (const nameSymbol of typeSymbol.children) {
           for (const propSymbol of nameSymbol.children.filter((s) => s.name === linkProp)) {
             if (propSymbol.range.contains(position)) {
-              const links = ["default", ...getSymbolArrayValue(document, propSymbol).map((name) => getUnsuffixedName(name).toLowerCase())];
-              const addTypeSuffix = workspace.getConfiguration(TAIPY_STUDIO_SETTINGS_NAME).get("editor.type.suffix.enabled", true);
+              const links = [
+                "default",
+                ...getSymbolArrayValue(document, propSymbol).map((name) => getUnsuffixedName(name).toLowerCase()),
+              ];
+              const addTypeSuffix = workspace
+                .getConfiguration(TAIPY_STUDIO_SETTINGS_NAME)
+                .get("editor.type.suffix.enabled", true);
               return childTypeSymbol.children
                 .map((s) => s.name)
                 .filter((nodeName) => !links.includes(nodeName.toLowerCase()))
@@ -120,7 +151,8 @@ export class ConfigCompletionItemProvider implements CompletionItemProvider<Comp
           }
         }
       }
-    } else {
+    }
+    if (!found) {
       const enumProps = await getEnumProps();
       const enumProp = enumProps.find((l) => lineSplit.includes(l));
       if (enumProp) {
@@ -146,7 +178,9 @@ const getPythonSymbols = async (isFunction: boolean, lineText: string, position:
     const mainIdx = modules.indexOf(MAIN_PYTHON_MODULE);
     mainIdx > -1 && modules.splice(mainIdx, 0, mainModule);
   }
-  const cis = symbolsWithModule.map((v) => getCompletionItemInString(v, lineText, position, undefined, getPythonSuffix(isFunction)));
+  const cis = symbolsWithModule.map((v) =>
+    getCompletionItemInString(v, lineText, position, undefined, getPythonSuffix(isFunction))
+  );
   modules.push(l10n.t("New module name"));
   cis.push(
     getCompletionItemInString(
@@ -166,7 +200,9 @@ const getCompletionItemInArray = (value: string, line: string, position: Positio
   value = getSectionName(value, addTypeSuffix);
   const matches = line.match(listRe);
   const matchPos = getPosFromMatches(matches, line);
-  const matchIdx = matchPos.findIndex((pos, idx) => position.character >= pos && position.character <= pos + (matches[idx] ? matches[idx].length : -1));
+  const matchIdx = matchPos.findIndex(
+    (pos, idx) => position.character >= pos && position.character <= pos + (matches[idx] ? matches[idx].length : -1)
+  );
   if (matchIdx === 7) {
     // replace last bit with choice
     let startPos = matchPos[7];
@@ -192,7 +228,12 @@ const getCompletionItemInArray = (value: string, line: string, position: Positio
         endVal += "]";
       }
     }
-    ci.additionalTextEdits = [TextEdit.replace(new Range(position.with(undefined, startPos), position.with(undefined, endPos)), startVal + value + endVal)];
+    ci.additionalTextEdits = [
+      TextEdit.replace(
+        new Range(position.with(undefined, startPos), position.with(undefined, endPos)),
+        startVal + value + endVal
+      ),
+    ];
     ci.insertText = "";
   } else {
     // insert after the last comma
@@ -211,14 +252,22 @@ const getCompletionItemInArray = (value: string, line: string, position: Positio
     } else {
       startVal = ', "';
     }
-    ci.additionalTextEdits = [TextEdit.insert(position.with(undefined, matchPos[idx] + matches[idx].length), startVal + value + '"')];
+    ci.additionalTextEdits = [
+      TextEdit.insert(position.with(undefined, matchPos[idx] + matches[idx].length), startVal + value + '"'),
+    ];
     ci.insertText = "";
   }
   return ci;
 };
 
 const stringRe = /(\w+)?\s*(=)?\s*(")?(\w*)(")?/; // storage_type = "toto": gr1 storage_type | gr2 = | gr3 " | gr4 toto | gr5 "
-const getCompletionItemInString = (value: string, line: string, position: Position, placeHolders?: [string[] | string, string], suffix?: string) => {
+const getCompletionItemInString = (
+  value: string,
+  line: string,
+  position: Position,
+  placeHolders?: [string[] | string, string],
+  suffix?: string
+) => {
   const ci = new CompletionItem(value);
   const matches = line.match(listRe);
   const matchPos = getPosFromMatches(matches, line);

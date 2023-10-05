@@ -12,13 +12,16 @@
  */
 
 export interface ViewMessage<T = unknown> {
-    viewId: string;
-    props: T;
+  viewId: string;
+  props: T;
 }
 
 export interface EditorAddNodeMessage {
-    editorMessage: boolean;
-    nodeType: string;
-    nodeName: string;
+  editorMessage: boolean;
+  nodeType: string;
+  nodeName: string;
 }
 
+export interface EditorShowSequenceMessage {
+  sequence: string;
+}

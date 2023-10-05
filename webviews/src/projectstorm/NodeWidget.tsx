@@ -11,13 +11,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-import { useCallback } from "react";
-import { DiagramEngine } from "@projectstorm/react-diagrams-core";
+import { useCallback, useEffect, useState } from "react";
+import { DiagramEngine, NodeModelListener } from "@projectstorm/react-diagrams-core";
 import styled from "@emotion/styled";
-import { DefaultNodeModel, DefaultPortModel, PortWidget } from "@projectstorm/react-diagrams";
+import { BaseEntityEvent, DefaultPortModel, PortWidget } from "@projectstorm/react-diagrams";
 
 import { IN_PORT_NAME, OUT_PORT_NAME, getNodeContext } from "../utils/diagram";
 import { getNodeIcon } from "../utils/config";
+import { ICON_CHANGED_EVENT, TaipyNodeModel } from "./factories";
 
 namespace S {
   export const Node = styled.div<{ background?: string; selected?: boolean }>`
@@ -38,7 +39,7 @@ namespace S {
 
   export const TitleName = styled.div`
     flex-grow: 1;
-    padding: 5px 5px;
+    padding: 0.3em 0.3em 0.3em 0;
   `;
 
   export const SubTitleName = styled.span`
@@ -47,7 +48,7 @@ namespace S {
   `;
 
   export const TitleIcon = styled.div`
-    padding: 5px 0 5px 5px;
+    padding: 0.3em;
   `;
 
   export const Ports = styled.div`
@@ -86,12 +87,24 @@ namespace S {
 }
 
 interface NodeProps {
-  node: DefaultNodeModel;
+  node: TaipyNodeModel;
   engine: DiagramEngine;
   perspective: string;
 }
 
 const NodeWidget = ({ node, perspective, engine }: NodeProps) => {
+  const [extraIcon, setExtraIcon] = useState<string[]>();
+  useEffect(() => {
+    node.registerListener({
+      [ICON_CHANGED_EVENT]: (event: BaseEntityEvent<TaipyNodeModel>) =>
+        setExtraIcon(
+          event.entity.extraIcon && !event.entity.extraIcon.startsWith("-")
+            ? event.entity.extraIcon.split(".", 2)
+            : undefined
+        ),
+    } as unknown as NodeModelListener);
+  }, [node]);
+
   const generatePort = useCallback(
     (port: DefaultPortModel) =>
       port.getName() === IN_PORT_NAME ? (
@@ -122,6 +135,11 @@ const NodeWidget = ({ node, perspective, engine }: NodeProps) => {
           <i className={getNodeIcon(node.getType())}></i>
         </S.TitleIcon>
         <S.TitleName>{node.getOptions().name}</S.TitleName>
+        {extraIcon?.length ? (
+          <S.TitleIcon className="icon" title={extraIcon[1]}>
+            <i className={getNodeIcon(extraIcon[0])}></i>
+          </S.TitleIcon>
+        ) : null}
       </S.Title>
       <S.Ports>
         <S.PortsContainer>{node.getInPorts().map(generatePort)}</S.PortsContainer>

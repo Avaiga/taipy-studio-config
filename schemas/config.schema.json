@@ -5,6 +5,68 @@
   "description": "Taipy Config",
   "type": "object",
   "properties": {
+    "CORE": {
+      "description": "Data nodes",
+      "type": "object",
+      "properties": {
+        "core_version": {
+          "description": "Version of Taipy Core",
+          "type": "string"
+        },
+        "root_folder": {
+          "description": "Path of the base folder for the taipy application. The default value is ./taipy/",
+          "type": "string"
+        },
+        "storage_folder": {
+          "description": "Folder name used to store Taipy data. The default value is .data/. It is used in conjunction with the root_folder field",
+          "type": "string"
+        },
+        "read_entity_retry": {
+          "description": "Number of times to retry before return failure to read an entity.",
+          "type": [
+            "integer",
+            "string"
+          ],
+          "default": "3:int"
+        },
+        "repository_type": {
+          "description": "The repository type that is used to store the entities.",
+          "type": "string",
+          "enum": [
+            "sql",
+            "filesystem"
+          ],
+          "default": "filesystem"
+        },
+        "repository_properties": {
+          "type": "object"
+        },
+        "mode": {
+          "description": "The Taipy operating mode.",
+          "type": "string",
+          "enum": [
+            "development",
+            "experiment",
+            "production"
+          ],
+          "default": "development"
+        },
+        "version_number": {
+          "description": "The identifier of the user application version.",
+          "type": "string"
+        },
+        "force": {
+          "description": "If True, force the application run even if there are some conflicts in the configuration.",
+          "type": "string",
+          "enum": [
+            "False:bool",
+            "True:bool"
+          ],
+          "default": "False:bool"
+        }
+      },
+      "required": []
+    },
     "DATA_NODE": {
       "description": "Data nodes",
       "type": "object",
@@ -13,13 +75,12 @@
       "additionalProperties": {
         "properties": {
           "scope": {
-            "description": "An enum value among GLOBAL, CYCLE, SCENARIO or PIPELINE that represents the visibility of the data node in the graph of entities.",
+            "description": "An enum value among GLOBAL, CYCLE, SCENARIO that represents the visibility of the data node in the graph of entities.",
             "type": "string",
             "enum": [
               "GLOBAL:SCOPE",
               "CYCLE:SCOPE",
               "SCENARIO:SCOPE",
-              "PIPELINE:SCOPE",
               ""
             ],
             "default": "SCENARIO:SCOPE"
@@ -41,6 +102,10 @@
               ""
             ],
             "default": "pickle"
+          },
+          "validity_period": {
+            "description": "A timedelta value as a string: The duration since the last edit date for which the data node can be considered up-to-date. If *validity_period* is set to None, the data node is always up-to-date.",
+            "type": "string"
           },
           "default_path": {
             "description": "storage_type: pickle, csv, excel, json, parquet specific.",
@@ -93,7 +158,7 @@
             "type": "string"
           },
           "db_driver": {
-            "description": "storage_type: sql, sql_table specific. The default value of db_driver is \"ODBC Driver 17 for SQL Server\".",
+            "description": "storage_type: sql, sql_table specific.",
             "type": "string"
           },
           "db_extra_args": {
@@ -132,11 +197,11 @@
             "type": "string",
             "taipy_function": true
           },
-          "read_fct_params": {
+          "read_fct_args": {
             "description": "storage_type: generic specific.",
             "type": "array"
           },
-          "write_fct_params": {
+          "write_fct_args": {
             "description": "storage_type: generic specific.",
             "type": "array"
           },
@@ -299,25 +364,6 @@
         }
       }
     },
-    "PIPELINE": {
-      "description": "Pipelines",
-      "type": "object",
-      "properties": {},
-      "required": [],
-      "additionalProperties": {
-        "type": "object",
-        "properties": {
-          "tasks": {
-            "description": "The list of tasks configurations.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "uniqueItems": true
-          }
-        }
-      }
-    },
     "SCENARIO": {
       "description": "Scenarios",
       "type": "object",
@@ -326,8 +372,16 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
-          "pipelines": {
-            "description": "The list of pipeline configs.",
+          "tasks": {
+            "description": "The list of task configs.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "additional_data_nodes": {
+            "description": "The list of additional data node configs.",
             "type": "array",
             "items": {
               "type": "string"
@@ -353,6 +407,18 @@
               "type": "string",
               "taipy_function": true
             }
+          },
+          "sequences": {
+            "description": "The dictionary of sequence descriptions",
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "uniqueItems": true
+              }
+            },
+            "uniqueItems": true
           }
         }
       }
@@ -360,44 +426,7 @@
     "TAIPY": {
       "description": "Taipy",
       "type": "object",
-      "properties": {
-        "root_folder": {
-          "description": "Path of the base folder for the taipy application. The default value is ./taipy/",
-          "type": "string"
-        },
-        "storage_folder": {
-          "description": "Folder name used to store Taipy data. The default value is .data/. It is used in conjunction with the root_folder field",
-          "type": "string"
-        },
-        "clean_entities_enabled": {
-          "description": "Boolean field to activate/deactivate the clean entities feature.",
-          "type": "string",
-          "enum": [
-            "True:bool",
-            "False:bool"
-          ],
-          "default": "False:bool"
-        },
-        "read_entity_retry": {
-          "description": "Number of times to retry before return failure to read an entity.",
-          "type": [
-            "integer",
-            "string"
-          ]
-        },
-        "repository_type": {
-          "description": "The repository type that is used to store the entities.",
-          "type": "string",
-          "enum": [
-            "sql",
-            "filesystem"
-          ],
-          "default": "filesystem"
-        },
-        "repository_properties": {
-          "type": "object"
-        }
-      }
+      "properties": {}
     },
     "JOB": {
       "description": "Job",

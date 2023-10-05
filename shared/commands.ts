@@ -29,3 +29,4 @@ export const SAVE_AS_PNG_URL = "saveAsPngUrl";
 export const DELETE_PROPERTY = "deleteProperty";
 export const EDIT_PROPERTY = "editProperty";
 export const EDIT_NODE_NAME = "editNodeName";
+export const SELECT_SEQUENCE = "selectSequence";

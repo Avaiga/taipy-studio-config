@@ -15,6 +15,7 @@ import { exec } from "child_process";
 import { commands, l10n, Position, Uri, Webview, workspace } from "vscode";
 
 import { getLog } from "./logging";
+import { ConfigItem } from "../providers/ConfigNodesProvider";
 
 export const getNonce = () => {
   const crypto = require("crypto");
@@ -30,25 +31,41 @@ export const getCspScriptSrc = (nonce: string) => {
 
 export const textUriListMime = "text/uri-list";
 
-export const joinPaths = (extensionUri: Uri, ...pathSegments: string[]): Uri => Uri.joinPath(extensionUri, "dist", ...pathSegments);
+export const joinPaths = (extensionUri: Uri, ...pathSegments: string[]): Uri =>
+  Uri.joinPath(extensionUri, "dist", ...pathSegments);
 
 export const getDefaultConfig = (webview: Webview, extensionUri: Uri) => {
   const bundleName = l10n.uri && l10n.uri.path.split("/").at(-1);
-  return { icons: {}, l10nUri: bundleName && webview.asWebviewUri(joinPaths(extensionUri, "l10n", bundleName)).toString() };
+  return {
+    icons: {},
+    l10nUri: bundleName && webview.asWebviewUri(joinPaths(extensionUri, "l10n", bundleName)).toString(),
+  };
 };
 
 export const getPositionFragment = (pos: Position) => `L${pos.line + 1}C${pos.character}`;
 
-export const getFilesFromPythonPackages = (file: string, packages: string[]) => {
+export const getFileFromPythonPackages = (file: string, packages: string[]) => {
   return new Promise<Record<string, string>>((resolve, reject) => {
-    commands.executeCommand("python.interpreterPath", workspace.workspaceFolders?.map(({uri}) => uri.fsPath)).then(
-      (pythonPath: string) => doGetFilesFromPythonPackage(pythonPath, file, packages, resolve, reject),
-      () => doGetFilesFromPythonPackage(workspace.getConfiguration("python").get("defaultInterpreterPath", "python"), file, packages, resolve, reject)
-    );
+    commands
+      .executeCommand(
+        "python.interpreterPath",
+        workspace.workspaceFolders?.map(({ uri }) => uri.fsPath)
+      )
+      .then(
+        (pythonPath: string) => doGetFileFromPythonPackage(pythonPath, file, packages, resolve, reject),
+        () =>
+          doGetFileFromPythonPackage(
+            workspace.getConfiguration("python").get("defaultInterpreterPath", "python"),
+            file,
+            packages,
+            resolve,
+            reject
+          )
+      );
   });
 };
 
-const doGetFilesFromPythonPackage = (
+const doGetFileFromPythonPackage = (
   pythonPath: string,
   file: string,
   packages: string[],
@@ -56,7 +73,9 @@ const doGetFilesFromPythonPackage = (
   reject: (err: unknown) => void
 ) => {
   getLog().info(l10n.t("Using Python interpreter: {0}", pythonPath));
-  const cmd = `"${pythonPath}" "${Uri.joinPath(Uri.file(__dirname), "python", "find_file_in_package.py").fsPath}" "${file}" "${packages.join('" "')}"`;
+  const cmd = `"${pythonPath}" "${
+    Uri.joinPath(Uri.file(__dirname), "python", "find_file_in_package.py").fsPath
+  }" "${file}" "${packages.join('" "')}"`;
   exec(cmd, (error, stdout, stderr) => {
     if (error) {
       error.code > 1 && getLog().warn(cmd, "=>", error);
@@ -72,3 +91,13 @@ const doGetFilesFromPythonPackage = (
     return resolve(JSON.parse(stdout));
   });
 };
+
+export const getExtras = (node: object) =>
+  node
+    ? Object.entries(node).reduce((o, [k, v]) => {
+        k.startsWith("__") && (o[k.substring(2)] = v);
+        return o;
+      }, {} as Record<string, string>)
+    : {};
+
+export const getArrayText = (array?: string[], fn: (a:string) => string = (a: string) => a) => array?.length ? `[${'"' + array.map(fn).join('", "') + '"'}]` : '[]';
