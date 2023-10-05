@@ -13,6 +13,7 @@
 
 import { DisplayModel, Link, Nodes } from "../../../shared/diagram";
 import { DataNode, Scenario, Sequence, Task } from "../../../shared/names";
+import { perspectiveRootId } from "../../../shared/views";
 import { isRoot } from "./config";
 
 const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: string): DisplayModel => {
@@ -62,7 +63,11 @@ const applyNode = (displayModel: DisplayModel, nodeType: string, nodeName: strin
   return { nodes, links, sequences: {} };
 };
 
-export const applyPerspective = (displayModel: DisplayModel, perspectiveId: string, extraEntities?: string): [DisplayModel, string | undefined] => {
+export const applyPerspective = (
+  displayModel: DisplayModel,
+  perspectiveId: string,
+  extraEntities?: string
+): [DisplayModel, string | undefined] => {
   if (!displayModel || isRoot(perspectiveId)) {
     return [displayModel, undefined];
   }
@@ -87,13 +92,15 @@ export const applyPerspective = (displayModel: DisplayModel, perspectiveId: stri
       }
     });
   if (displayModel.sequences[nodeName]) {
-    res.sequences[nodeName] = displayModel.sequences[nodeName]
+    res.sequences[nodeName] = displayModel.sequences[nodeName];
   }
   return [res, appliedEntities.length ? appliedEntities.join(";") : undefined];
 };
 
-const orderedTypes = [Scenario, Sequence, Task, DataNode];
-
-export const getNodeTypes = (perspectiveId: string) => {
-  return orderedTypes.slice(orderedTypes.indexOf(perspectiveId.split(".", 2)[0]) + 1);
+const orderedTypes: Record<string, string[]> = {
+  [Scenario]: [Sequence, Task, DataNode],
+  [perspectiveRootId]: [Scenario, Task, DataNode],
 };
+
+export const getNodeTypes = (perspectiveId: string) =>
+  orderedTypes[perspectiveId.split(".", 2)[0]] || orderedTypes[perspectiveRootId];

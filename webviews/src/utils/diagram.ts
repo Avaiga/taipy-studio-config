@@ -31,7 +31,7 @@ import { BaseEvent, BaseEntityEvent } from "@projectstorm/react-canvas-core";
 import { debounce } from "debounce";
 
 import { SELECT } from "../../../shared/commands";
-import { DisplayModel, Positions } from "../../../shared/diagram";
+import { DisplayModel, Positions, WebContext } from "../../../shared/diagram";
 import { EditorAddNodeMessage } from "../../../shared/messages";
 import { DataNode, Sequence, Scenario, Task } from "../../../shared/names";
 
@@ -88,7 +88,9 @@ export const getNodeByName = (model: TaipyDiagramModel, paths: string[]) => {
   const [nodeType, ...parts] = paths;
   const name = parts.join(".");
   return name
-    ? (getModelNodes(model).find((n) => n.getType() == nodeType && (n.getOptions() as DefaultNodeModelOptions).name === name) as TaipyNodeModel)
+    ? (getModelNodes(model).find(
+        (n) => n.getType() == nodeType && (n.getOptions() as DefaultNodeModelOptions).name === name
+      ) as TaipyNodeModel)
     : undefined;
 };
 
@@ -108,7 +110,9 @@ const setPorts = (node: TaipyNodeModel) => {
 };
 
 export const getLinkId = (link: LinkModel) =>
-  `LINK.${getNodeId(link.getSourcePort().getNode() as TaipyNodeModel)}.${getNodeId(link.getTargetPort().getNode() as TaipyNodeModel)}`;
+  `LINK.${getNodeId(link.getSourcePort().getNode() as TaipyNodeModel)}.${getNodeId(
+    link.getTargetPort().getNode() as TaipyNodeModel
+  )}`;
 export const getNodeId = (node: TaipyNodeModel) => `${node.getType()}.${node.getOptions().name}`;
 
 const fireNodeSelected = (nodeType: string, name?: string) => name && postActionMessage(nodeType, name, SELECT);
@@ -152,7 +156,8 @@ const getNodeAndLinksPositions = (node: TaipyNodeModel, positions: Positions = {
   return positions;
 };
 
-const postPoss = (getPoss: (node: TaipyNodeModel) => Positions, node: TaipyNodeModel) => postPositionsMessage(getPoss(node));
+const postPoss = (getPoss: (node: TaipyNodeModel) => Positions, node: TaipyNodeModel) =>
+  postPositionsMessage(getPoss(node));
 const debouncedPostPoss = debounce(postPoss, 500);
 
 const nodeListener = {
@@ -164,7 +169,8 @@ const nodeListener = {
       }
     }
   },
-  positionChanged: (e: BaseEvent) => debouncedPostPoss(getNodeAndLinksPositions, (e as BaseEntityEvent<TaipyNodeModel>).entity),
+  positionChanged: (e: BaseEvent) =>
+    debouncedPostPoss(getNodeAndLinksPositions, (e as BaseEntityEvent<TaipyNodeModel>).entity),
 } as NodeModelListener;
 
 const linkListener = {
@@ -175,7 +181,12 @@ const linkListener = {
       const sourceNode = link.getSourcePort()?.getNode() as TaipyNodeModel;
       const targetNode = evt.port.getNode() as TaipyNodeModel;
       if (sourceNode && targetNode) {
-        postLinkCreation(sourceNode.getType(), sourceNode.getOptions().name || "", targetNode.getType(), targetNode.getOptions().name || "");
+        postLinkCreation(
+          sourceNode.getType(),
+          sourceNode.getOptions().name || "",
+          targetNode.getType(),
+          targetNode.getOptions().name || ""
+        );
       }
     }
   },
@@ -191,7 +202,9 @@ export const diagramListener = {
       postNodeCreation(node.getType(), node.getOptions().name || "");
     } else {
       //mark the link as not post to
-      Object.values(node.getPorts()).forEach((p) => Object.values(p.getLinks()).forEach((l) => (l.getOptions().extras = DO_NOT_POST_REMOVE)));
+      Object.values(node.getPorts()).forEach((p) =>
+        Object.values(p.getLinks()).forEach((l) => (l.getOptions().extras = DO_NOT_POST_REMOVE))
+      );
       postNodeRemoval(node.getType(), node.getOptions().name || "");
     }
   },
@@ -211,7 +224,12 @@ export const onLinkRemove = (link: LinkModel<LinkModelGenerics>) => {
   const sourceNode = link.getSourcePort()?.getNode() as TaipyNodeModel;
   const targetNode = link.getTargetPort()?.getNode() as TaipyNodeModel;
   if (sourceNode && targetNode) {
-    postLinkDeletion(sourceNode.getType(), sourceNode.getOptions().name || "", targetNode.getType(), targetNode.getOptions().name || "");
+    postLinkDeletion(
+      sourceNode.getType(),
+      sourceNode.getOptions().name || "",
+      targetNode.getType(),
+      targetNode.getOptions().name || ""
+    );
   }
 };
 
@@ -233,7 +251,9 @@ export const createLink = (outPort: DefaultPortModel, inPort: DefaultPortModel) 
 
 export const showNode = (engine: DiagramEngine, message: EditorAddNodeMessage) => {
   const model = engine.getModel();
-  let node = getModelNodes(model).find((n) => n.getType() === message.nodeType && (n as TaipyNodeModel).getOptions().name === message.nodeName);
+  let node = getModelNodes(model).find(
+    (n) => n.getType() === message.nodeType && (n as TaipyNodeModel).getOptions().name === message.nodeName
+  );
   if (node) {
     const canvas = engine.getCanvas();
     const ratio = model.getZoomLevel() / 100;
@@ -251,18 +271,23 @@ export const showNode = (engine: DiagramEngine, message: EditorAddNodeMessage) =
 
 const isInLine = (pnt: PointModel, startLine: PointModel, endLine: PointModel) => {
   const L2 =
-    (endLine.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) + (endLine.getY() - startLine.getY()) * (endLine.getY() - startLine.getY());
+    (endLine.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) +
+    (endLine.getY() - startLine.getY()) * (endLine.getY() - startLine.getY());
   if (L2 === 0) {
     return false;
   }
   const r =
-    ((pnt.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) + (pnt.getY() - startLine.getY()) * (endLine.getY() - startLine.getY())) / L2;
+    ((pnt.getX() - startLine.getX()) * (endLine.getX() - startLine.getX()) +
+      (pnt.getY() - startLine.getY()) * (endLine.getY() - startLine.getY())) /
+    L2;
 
   //Assume line thickness is circular
   if (0 <= r && r <= 1) {
     //On the line segment
     const s =
-      ((startLine.getY() - pnt.getY()) * (endLine.getX() - startLine.getX()) - (startLine.getX() - pnt.getX()) * (endLine.getY() - startLine.getY())) / L2;
+      ((startLine.getY() - pnt.getY()) * (endLine.getX() - startLine.getX()) -
+        (startLine.getX() - pnt.getX()) * (endLine.getY() - startLine.getY())) /
+      L2;
     return Math.abs(s) * Math.sqrt(L2) <= lineLeeway;
   }
   return false;
@@ -278,7 +303,10 @@ export const relayoutDiagram = (engine: DiagramEngine, dagreEngine: DagreEngine)
     const points = l.getPoints();
     if (points.length === 3) {
       // remove unnecessary intermediate if same level
-      if (Math.abs(points[0].getX() - points[2].getX()) < lineLeeway || Math.abs(points[0].getY() - points[2].getY()) < lineLeeway) {
+      if (
+        Math.abs(points[0].getX() - points[2].getX()) < lineLeeway ||
+        Math.abs(points[0].getY() - points[2].getY()) < lineLeeway
+      ) {
         points.splice(1, 1);
         l.setPoints(points);
       }
@@ -300,7 +328,7 @@ export const relayoutDiagram = (engine: DiagramEngine, dagreEngine: DagreEngine)
 };
 
 export const getNodeContext = (node: TaipyNodeModel, perspective: string) => {
-  const vscodeContext: any = {
+  const vscodeContext: WebContext = {
     preventDefaultContextMenuItems: true,
     webviewSection: "taipy-dup",
     nodeType: node.getType(),
@@ -308,9 +336,20 @@ export const getNodeContext = (node: TaipyNodeModel, perspective: string) => {
   };
   if (!isRoot(perspective)) {
     vscodeContext.webviewSection += "-del";
+    if (Task === vscodeContext.nodeType && node.extraIcon) {
+      const [perspType, perspName] = perspective.split(".");
+      const [sType, sequence] = node.extraIcon.split(".");
+      if (sequence && perspType === Scenario) {
+        vscodeContext.scenario = perspName;
+        vscodeContext.sequence = sequence;
+      }
+    }
   }
   if (shouldOpenPerspective(node.getType())) {
     vscodeContext.webviewSection += "-persp";
+  }
+  if (vscodeContext.sequence && node.extraIcon) {
+    vscodeContext.webviewSection += node.extraIcon.startsWith("-") ? "-addSeq" : "-rmSeq";
   }
   return JSON.stringify(vscodeContext);
 };
@@ -341,7 +380,10 @@ export const populateModel = (displayModel: DisplayModel, model: TaipyDiagramMod
       const parentNode = nodeModels[nodeType] && nodeModels[nodeType][nodeName];
       const childNode = nodeModels[childType] && nodeModels[childType][childName];
       if (parentNode && childNode) {
-        const link = createLink(parentNode.getPort(OUT_PORT_NAME) as DefaultPortModel, childNode.getPort(IN_PORT_NAME) as DefaultPortModel);
+        const link = createLink(
+          parentNode.getPort(OUT_PORT_NAME) as DefaultPortModel,
+          childNode.getPort(IN_PORT_NAME) as DefaultPortModel
+        );
         if (Array.isArray(linkDetail.positions) && linkDetail.positions.length) {
           link.setPoints(linkDetail.positions.map(([x, y]) => link.point(x, y)));
         }

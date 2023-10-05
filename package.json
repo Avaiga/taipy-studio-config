@@ -71,6 +71,16 @@
         "icon": "$(copy)"
       },
       {
+        "command": "taipy.perspective.removeFromSequence",
+        "title": "%taipy.config.commands.taipy.perspective.removeFromSequence%",
+        "icon": "$(delete)"
+      },
+      {
+        "command": "taipy.perspective.addToSequence",
+        "title": "%taipy.config.commands.taipy.perspective.addToSequence%",
+        "icon": "$(add)"
+      },
+      {
         "command": "taipy.diagram.addNode",
         "title": "%taipy.config.commands.taipy.diagram.addNode%",
         "icon": "$(add)"
@@ -279,7 +289,7 @@
       "webview/context": [
         {
           "command": "taipy.perspective.showFromDiagram",
-          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-persp$/"
+          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-persp/"
         },
         {
           "command": "taipy.perspective.removeFromDiagram",
@@ -288,6 +298,14 @@
         {
           "command": "taipy.perspective.duplicateNode",
           "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy-dup/"
+        },
+        {
+          "command": "taipy.perspective.removeFromSequence",
+          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-rmSeq/"
+        },
+        {
+          "command": "taipy.perspective.addToSequence",
+          "when": "webviewId == 'taipy.config.editor.diagram' && webviewSection =~ /taipy.*-addSeq/"
         },
         {
           "command": "taipy.details.showLink",

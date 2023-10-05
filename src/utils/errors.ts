@@ -84,7 +84,7 @@ export const reportInconsistencies = async (
             const tasksSymbol = getSymbol(scenarioSymbol.children, PROP_TASKS);
             if (!tasksSymbol) {return;}
             const value = doc.getText(tasksSymbol.range);
-            const tasks = getArrayFromText(value).map(t => getUnsuffixedName(t));
+            const tasks = getArrayFromText(value).map(getUnsuffixedName);
             getSymbol(scenarioSymbol.children, PROP_SEQUENCES)?.children.forEach(seqSymbol => {
               const startOffset = doc.offsetAt(seqSymbol.range.start);
               const seqText = doc.getText(seqSymbol.range);

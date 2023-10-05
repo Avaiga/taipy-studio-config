@@ -13,6 +13,8 @@
     "taipy.config.commands.taipy.perspective.removeFromDiagram": "Taipy: Remove from View",
     "taipy.config.commands.taipy.perspective.show": "Taipy: Show View",
     "taipy.config.commands.taipy.perspective.showFromDiagram": "Taipy: Show View",
+    "taipy.config.commands.taipy.perspective.removeFromSequence": "Taipy: Remove from Sequence",
+    "taipy.config.commands.taipy.perspective.addToSequence": "Taipy: Add to Sequence",
     "taipy.config.commands.taipy.diagram.addNode": "Taipy: Add/Show in active View",
     "taipy.config.commands.taipy.config.deleteNode": "Taipy: Delete from configuration",
     "taipy.config.commands.taipy.config.renameNode": "Taipy: Rename",

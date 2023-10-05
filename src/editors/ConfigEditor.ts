@@ -32,7 +32,15 @@ import {
   WorkspaceEdit,
 } from "vscode";
 
-import { configFilePattern, getCspScriptSrc, getDefaultConfig, getExtras, getNonce, joinPaths } from "../utils/utils";
+import {
+  configFilePattern,
+  getArrayText,
+  getCspScriptSrc,
+  getDefaultConfig,
+  getExtras,
+  getNonce,
+  joinPaths,
+} from "../utils/utils";
 import { revealConfigNodeCmd } from "../utils/commands";
 import {
   getCleanPerpsectiveUriString,
@@ -53,7 +61,6 @@ import {
   SAVE_AS_PNG_URL,
   SAVE_DOCUMENT,
   SELECT,
-  SELECT_SEQUENCE,
   SET_EXTRA_ENTITIES,
   SET_POSITIONS,
   UPDATE_EXTRA_ENTITIES,
@@ -80,7 +87,7 @@ import {
   getUnsuffixedName,
   toDisplayModel,
 } from "../utils/symbols";
-import { Positions } from "../../shared/diagram";
+import { Positions, WebContext } from "../../shared/diagram";
 import { ConfigCompletionItemProvider } from "../providers/CompletionItemProvider";
 import { ConfigDropEditProvider } from "../providers/DocumentDropEditProvider";
 import { getNodeNameValidationFunction } from "../utils/pythonSymbols";
@@ -140,7 +147,9 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       commands.registerCommand("taipy.config.deleteNode", this.deleteConfigurationNode, this),
       commands.registerCommand("taipy.perspective.removeFromDiagram", this.removeNodeFromPerspective, this),
       commands.registerCommand("taipy.perspective.duplicateNode", this.duplicateNode, this),
-      commands.registerCommand("taipy.scenario.showSequence", this.showSequenceInScenario, this)
+      commands.registerCommand("taipy.scenario.showSequence", this.showSequenceInScenario, this),
+      commands.registerCommand("taipy.perspective.removeFromSequence", this.removeFromSequence, this),
+      commands.registerCommand("taipy.perspective.addToSequence", this.addToSequence, this)
     );
   }
 
@@ -154,21 +163,21 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       return;
     }
     const ps = pps[`${Scenario}.${scenarioName}`];
-    ps && ps.forEach(panel => {
-      try {
-        panel.webview.postMessage({
-          sequence: item.label,
-        } as EditorShowSequenceMessage);
-      } catch (e) {
-        getLog().info("showSequenceInScenario: ", e.message || e);
-      }
-
-    });
+    ps &&
+      ps.forEach((panel) => {
+        try {
+          panel.webview.postMessage({
+            sequence: item.label,
+          } as EditorShowSequenceMessage);
+        } catch (e) {
+          getLog().info("showSequenceInScenario: ", e.message || e);
+        }
+      });
   }
 
   async createNewElement(uri: Uri, nodeType: string) {
     const doc = await workspace.openTextDocument(getOriginalUri(uri));
-    const nodeName = await this.getNodeName(doc, nodeType, false);
+    const nodeName = await this.getNodeName(doc, nodeType, undefined, false);
     if (nodeName) {
       if (await this.applyEdits(doc.uri, await this.doCreateElement(doc, nodeType, nodeName))) {
         this.addNodeToActiveDiagram(nodeType, nodeName, false);
@@ -213,7 +222,13 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
   }
 
   private async deleteConfigurationNode(item: ConfigItem) {
-    return this.doDeleteConfigurationNode(item.contextValue, item.label as string, item.resourceUri, false, getExtras(item.getNode()));
+    return this.doDeleteConfigurationNode(
+      item.contextValue,
+      item.label as string,
+      item.resourceUri,
+      false,
+      getExtras(item.getNode())
+    );
   }
 
   private async doDeleteConfigurationNode(
@@ -237,14 +252,21 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       const realDocument = await this.taipyContext.getDocFromUri(uri);
       const symbols = this.taipyContext.getSymbols(uri.toString());
       const isSequence = nodeType === Sequence;
-      const nameSymbol = isSequence && extras ? getSymbol(symbols, Scenario, extras[Scenario], PROP_SEQUENCES, nodeName) : getSymbol(symbols, nodeType, nodeName);
+      const nameSymbol =
+        isSequence && extras
+          ? getSymbol(symbols, Scenario, extras[Scenario], PROP_SEQUENCES, nodeName)
+          : getSymbol(symbols, nodeType, nodeName);
       if (!nameSymbol) {
         if (refreshOnFail) {
           this.updateWebview(realDocument, realDocument.isDirty);
         }
         return false;
       }
-      const edits: TextEdit[] = [TextEdit.delete(isSequence ? nameSymbol.range.with(nameSymbol.range.start.with(undefined, 0)) : nameSymbol.range)];
+      const edits: TextEdit[] = [
+        TextEdit.delete(
+          isSequence ? nameSymbol.range.with(nameSymbol.range.start.with(undefined, 0)) : nameSymbol.range
+        ),
+      ];
       await this.removeNodeLinks(realDocument, nodeType, nodeName, symbols, edits);
       const res = await this.applyEdits(realDocument.uri, edits);
       if (res) {
@@ -398,7 +420,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
           this.doDeleteConfigurationNode(e.nodeType, e.nodeName, document.uri, true);
           break;
         case GET_NODE_NAME:
-          this.getNodeName(realDocument, e.nodeType);
+          this.getNodeName(realDocument, e.nodeType, e.extras);
           break;
         case SET_EXTRA_ENTITIES:
           this.setExtraEntitiesInCache(document.uri, e.extraEntities);
@@ -415,7 +437,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
         case SAVE_AS_PNG_URL:
           this.saveAsPng(e.url);
           break;
-        }
+      }
     }, this);
 
     // clean-up when our editor is closed.
@@ -564,9 +586,17 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     }
   }
 
-  private async getNodeName(doc: TextDocument, nodeType: string, addNodeToActiveDiagram = true) {
+  private async getNodeName(
+    doc: TextDocument,
+    nodeType: string,
+    extras?: Record<string, string>,
+    addNodeToActiveDiagram = true
+  ) {
     const symbols = this.taipyContext.getSymbols(doc.uri.toString());
-    const typeSymbol = getSymbol(symbols, nodeType);
+    const typeSymbol =
+      nodeType === Sequence && extras
+        ? getSymbol(symbols, Scenario, extras[Scenario], PROP_SEQUENCES)
+        : getSymbol(symbols, nodeType);
     const nodeName = (typeSymbol?.children || [])
       .filter((s) => s.name.toLowerCase().startsWith(nodeType.toLowerCase()))
       .sort()
@@ -588,7 +618,19 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
       value: nodeName,
     });
     if (newName && addNodeToActiveDiagram) {
-      this.addNodeToActiveDiagram(nodeType, newName);
+      if (nodeType === Sequence) {
+        const range = typeSymbol ? typeSymbol.range : extras && getSymbol(symbols, Scenario, extras[Scenario])?.range;
+        if (range) {
+          this.applyEdits(doc.uri, [
+            TextEdit.insert(
+              range.start.translate(1).with(undefined, 0),
+              (typeSymbol ? "" : `[${Scenario}.${extras[Scenario]}.${PROP_SEQUENCES}]\n`) + `${newName} = []\n`
+            ),
+          ]);
+        }
+      } else {
+        this.addNodeToActiveDiagram(nodeType, newName);
+      }
     }
     return newName;
   }
@@ -686,7 +728,7 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     if (!nameSymbol) {
       return false;
     }
-    const newName = await this.getNodeName(realDocument, nodeType, false);
+    const newName = await this.getNodeName(realDocument, nodeType, undefined, false);
     if (!newName) {
       return false;
     }
@@ -697,15 +739,34 @@ export class ConfigEditorProvider implements CustomTextEditorProvider {
     return this.applyEdits(uri, edits);
   }
 
-  private async removeNodeFromPerspective({
-    baseUri,
-    nodeType,
-    nodeName,
-  }: {
-    baseUri: string;
-    nodeType: string;
-    nodeName: string;
-  }) {
+  private async removeFromSequence(wc: WebContext) {
+    return this.doAddRemoveTaskInSequence(wc, false);
+  }
+
+  private async addToSequence(wc: WebContext) {
+    return this.doAddRemoveTaskInSequence(wc, true);
+  }
+
+  private async doAddRemoveTaskInSequence({ baseUri, nodeName, scenario, sequence }: WebContext, add: boolean) {
+    const resourceUri = Uri.parse(baseUri, true);
+    const uri = getOriginalUri(resourceUri);
+    const realDocument = await this.taipyContext.getDocFromUri(uri);
+    const symbols = this.taipyContext.getSymbols(uri.toString());
+    const seqSymbol = getSymbol(symbols, Scenario, scenario, PROP_SEQUENCES, sequence);
+    if (!seqSymbol) {
+      return false;
+    }
+    const tasks = getSymbolArrayValue(realDocument, seqSymbol).map(getUnsuffixedName);
+    add && tasks.push(nodeName);
+    this.applyEdits(uri, [
+      TextEdit.replace(
+        seqSymbol.range,
+        getArrayText(add ? tasks : tasks.filter((t) => t !== nodeName), (t: string) => getSectionName(t))
+      ),
+    ]);
+  }
+
+  private async removeNodeFromPerspective({ baseUri, nodeType, nodeName }: WebContext) {
     const resourceUri = Uri.parse(baseUri, true);
     const uri = getOriginalUri(resourceUri);
     const realDocument = await this.taipyContext.getDocFromUri(uri);

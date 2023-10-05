@@ -39,17 +39,12 @@ import {
 import { TaipyDiagramModel } from "../projectstorm/models";
 import { applySmallChanges } from "../utils/smallModelChanges";
 import { DisplayModel, NodeName, ScenarioSequence } from "../../../shared/diagram";
-import { Sequence, Task } from "../../../shared/names";
+import { Scenario, Sequence, Task } from "../../../shared/names";
 import { TaipyNodeModel } from "src/projectstorm/factories";
 
 const [engine, dagreEngine] = initDiagram();
 
 const relayout = () => relayoutDiagram(engine, dagreEngine);
-
-const onCreateNode = (evt: MouseEvent<HTMLDivElement>) => {
-  const nodeType = evt.currentTarget.dataset.nodeType;
-  nodeType && postGetNodeName(nodeType);
-};
 
 const filter4Print = (node: Node) => node.nodeName !== "DIV" || !(node as HTMLDivElement).dataset.printIgnore;
 
@@ -58,13 +53,13 @@ const saveAsPng = () =>
 
 const zoomToFit = () => engine.zoomToFit();
 
-const showSequence = (tasks: NodeName[]) => {
-  const ts = tasks?.length ? tasks.map((t) => t.split(":", 2)[0]) : undefined;
+const showSequence = (sequence: string, tasks?: NodeName[]) => {
+  const ts = tasks?.length ? tasks.map((t) => t.split(":", 2)[0]) : [];
   (engine.getModel().getNodes() as TaipyNodeModel[]).forEach((n) => {
-    if (n.getType() === Task && ts && ts.includes(n.getOptions().name || "")) {
-      n.setExtraIcon(Sequence);
+    if (n.getType() === Task && ts.includes(n.getOptions().name || "")) {
+      n.setExtraIcon(`${Sequence}.${sequence}`);
     } else {
-      n.setExtraIcon('');
+      n.setExtraIcon(sequence && `-${Sequence}.${sequence}`);
     }
   });
   engine.setModel(engine.getModel());
@@ -95,15 +90,17 @@ const Editor = ({
     // Manage Post Message reception
     const messageListener = (event: MessageEvent) => {
       event.data?.editorMessage && showNode(engine, event.data as EditorAddNodeMessage);
-      if (event.data?.sequence) {
-        const seq = (event.data as EditorShowSequenceMessage).sequence;
-        setSequence(seq);
-        sequences && showSequence(sequences[seq]);
-      }
+      event.data?.sequence && setSequence((event.data as EditorShowSequenceMessage).sequence);
     };
     window.addEventListener("message", messageListener);
     return () => window.removeEventListener("message", messageListener);
   }, [sequences]);
+
+  useEffect(() => {
+    showSequence(sequence, sequences && sequences[sequence]);
+  }, [sequences, sequence]);
+
+  const onSequenceChange = useCallback((e: ChangeEvent<HTMLSelectElement>) => setSequence(e.target.value), []);
 
   useEffect(() => {
     if (!displayModel || (perspectiveId === oldPerspId.current && deepEqual(oldDisplayModel.current, displayModel))) {
@@ -126,7 +123,8 @@ const Editor = ({
     const needsPositions = populateModel(displayModel, model);
     // populate sequences
     const [perspType, perspName] = perspectiveId.split(".", 2);
-    setSequences(displayModel.sequences ? displayModel.sequences[perspName] : undefined);
+    const sequences = displayModel.sequences && perspName ? displayModel.sequences[perspName] : undefined;
+    setSequences(sequences);
     // add listener to Model
     model.registerListener(diagramListener);
 
@@ -134,14 +132,15 @@ const Editor = ({
       setTimeout(relayout, 500);
     }
     engine.setModel(model);
-  }, [displayModel, baseUri]);
+  }, [displayModel, baseUri, perspectiveId]);
 
-  const onSequenceChange = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
-      setSequence(e.target.value);
-      sequences && showSequence(sequences[e.target.value]);
+  const onCreateNode = useCallback(
+    (evt: MouseEvent<HTMLDivElement>) => {
+      const nodeType = evt.currentTarget.dataset.nodeType;
+      const [perspType, perspName] = perspectiveId.split(".", 2);
+      nodeType && postGetNodeName(nodeType, perspName ? { [perspType]: perspName } : undefined);
     },
-    [sequences]
+    [perspectiveId]
   );
 
   return (
@@ -159,16 +158,19 @@ const Editor = ({
           )
         )}
         {sequences && Object.keys(sequences).length ? (
-          <div>
-            <select value={sequence} onChange={onSequenceChange}>
-              <option value=""></option>
-              {Object.keys(sequences).map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
+          <>
+            <div>&gt;</div>
+            <div className="diagram-title-select">
+              <select value={sequence} onChange={onSequenceChange}>
+                <option value="">...</option>
+                {Object.keys(sequences).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
         ) : null}
       </div>
       <div className="diagram-root">

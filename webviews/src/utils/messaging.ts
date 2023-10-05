@@ -62,7 +62,8 @@ export const postLinkCreation = (sourceType: string, sourceName: string, targetT
   getVsCodeApi()?.postMessage({ command: CREATE_LINK, sourceType, sourceName, targetType, targetName });
 export const postLinkDeletion = (sourceType: string, sourceName: string, targetType: string, targetName: string) =>
   getVsCodeApi()?.postMessage({ command: DELETE_LINK, sourceType, sourceName, targetType, targetName });
-export const postGetNodeName = (nodeType: string) => getVsCodeApi()?.postMessage({ command: GET_NODE_NAME, nodeType });
+export const postGetNodeName = (nodeType: string, extras?: Record<string, unknown>) =>
+  getVsCodeApi()?.postMessage({ command: GET_NODE_NAME, nodeType, extras });
 export const postSetExtraEntities = (extraEntities: string) =>
   getVsCodeApi()?.postMessage({ command: SET_EXTRA_ENTITIES, extraEntities });
 export const postUpdateExtraEntities = (extraEntities: string) =>
@@ -85,6 +86,5 @@ export const postEditProperty = (
   propertyValue?: string | string[],
   extras?: Record<string, unknown>
 ) => getVsCodeApi()?.postMessage({ command: EDIT_PROPERTY, nodeType, nodeName, propertyName, propertyValue, extras });
-export const postEditNodeName = (nodeType: string, nodeName: string,
-  extras?: Record<string, unknown>) =>
+export const postEditNodeName = (nodeType: string, nodeName: string, extras?: Record<string, unknown>) =>
   getVsCodeApi()?.postMessage({ command: EDIT_NODE_NAME, nodeType, nodeName, extras });

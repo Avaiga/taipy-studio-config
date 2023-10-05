@@ -377,13 +377,13 @@ export class Context {
         if (pipelines?.length) {
           const pipelineTasks: Record<string, string[]> = {};
           pipelines.forEach(
-            (p) => (pipelineTasks[p.name] = getSymbolArrayValue(doc, p, PROP_TASKS).map((t) => getUnsuffixedName(t)))
+            (p) => (pipelineTasks[p.name] = getSymbolArrayValue(doc, p, PROP_TASKS).map(getUnsuffixedName))
           );
           scenarios.forEach((scenarioSymbol) => {
-            const pipelines = getSymbolArrayValue(doc, scenarioSymbol, "pipelines").map((p) => getUnsuffixedName(p));
+            const pipelines = getSymbolArrayValue(doc, scenarioSymbol, "pipelines").map(getUnsuffixedName);
             const tasksSymbol = getSymbol(scenarioSymbol.children, PROP_TASKS);
             const tasks = new Set(
-              tasksSymbol ? getSymbolArrayValue(doc, tasksSymbol).map((t) => getUnsuffixedName(t)) : []
+              tasksSymbol ? getSymbolArrayValue(doc, tasksSymbol).map(getUnsuffixedName) : []
             );
             const sequencesSymbol = getSymbol(scenarioSymbol.children, PROP_SEQUENCES);
             const sequences: string[] = [];

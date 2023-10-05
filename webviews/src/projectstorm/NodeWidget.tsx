@@ -93,13 +93,16 @@ interface NodeProps {
 }
 
 const NodeWidget = ({ node, perspective, engine }: NodeProps) => {
-  const [extraIcon, setExtraIcon] = useState<string>()
+  const [extraIcon, setExtraIcon] = useState<string[]>();
   useEffect(() => {
     node.registerListener({
-			[ICON_CHANGED_EVENT]: (event: BaseEntityEvent<TaipyNodeModel>) => (
-        setExtraIcon(event.entity.extraIcon)
-      )
-		} as unknown as NodeModelListener);
+      [ICON_CHANGED_EVENT]: (event: BaseEntityEvent<TaipyNodeModel>) =>
+        setExtraIcon(
+          event.entity.extraIcon && !event.entity.extraIcon.startsWith("-")
+            ? event.entity.extraIcon.split(".", 2)
+            : undefined
+        ),
+    } as unknown as NodeModelListener);
   }, [node]);
 
   const generatePort = useCallback(
@@ -132,9 +135,9 @@ const NodeWidget = ({ node, perspective, engine }: NodeProps) => {
           <i className={getNodeIcon(node.getType())}></i>
         </S.TitleIcon>
         <S.TitleName>{node.getOptions().name}</S.TitleName>
-        {extraIcon ? (
-          <S.TitleIcon className="icon" title={extraIcon}>
-            <i className={getNodeIcon(extraIcon || "")}></i>
+        {extraIcon?.length ? (
+          <S.TitleIcon className="icon" title={extraIcon[1]}>
+            <i className={getNodeIcon(extraIcon[0])}></i>
           </S.TitleIcon>
         ) : null}
       </S.Title>
