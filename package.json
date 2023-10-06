@@ -403,7 +403,7 @@
         },
         "taipyStudio.config.excludePythonGlobPattern": {
           "type": "string",
-          "default": "",
+          "default": "{**/.env,**/.venv,**/env,**/venv,**/ENV,**/env.bak,**/venv.bak}",
           "markdownDescription": "%taipy.config.settings.config.excludePythonGlobPattern.desc%"
         },
         "taipyStudio.config.useSchemaFromPackage": {
