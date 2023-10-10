@@ -39,7 +39,7 @@ import {
 import { TaipyDiagramModel } from "../projectstorm/models";
 import { applySmallChanges } from "../utils/smallModelChanges";
 import { DisplayModel, NodeName, ScenarioSequence } from "../../../shared/diagram";
-import { Scenario, Sequence, Task } from "../../../shared/names";
+import { Sequence, Task } from "../../../shared/names";
 import { TaipyNodeModel } from "src/projectstorm/factories";
 
 const [engine, dagreEngine] = initDiagram();

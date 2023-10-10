@@ -33,7 +33,7 @@ import { debounce } from "debounce";
 import { SELECT } from "../../../shared/commands";
 import { DisplayModel, Positions, WebContext } from "../../../shared/diagram";
 import { EditorAddNodeMessage } from "../../../shared/messages";
-import { DataNode, Sequence, Scenario, Task } from "../../../shared/names";
+import { DataNode, Scenario, Task } from "../../../shared/names";
 
 import { nodeTypes, isRoot, getNodeColor } from "./config";
 import {
@@ -77,7 +77,6 @@ export const setFactoriesSettings = (engine: DiagramEngine, perspective: string)
 
 const openPerspective: Record<string, boolean> = {
   [Scenario]: true,
-  [Sequence]: true,
 };
 export const shouldOpenPerspective = (nodeType: string) => !!(nodeType && openPerspective[nodeType]);
 
@@ -100,7 +99,6 @@ export const OUT_PORT_NAME = "Out";
 const nodePorts: Record<string, [boolean, boolean]> = {
   [DataNode]: [true, true],
   [Task]: [true, true],
-  [Sequence]: [true, true],
   [Scenario]: [false, true],
 };
 const setPorts = (node: TaipyNodeModel) => {
@@ -244,7 +242,7 @@ export const createNode = (nodeType: string, nodeName: string, createPorts = tru
   return node;
 };
 
-export const createLink = (outPort: DefaultPortModel, inPort: DefaultPortModel) => {
+const createLink = (outPort: DefaultPortModel, inPort: DefaultPortModel) => {
   const link = outPort.link<DefaultLinkModel>(inPort);
   return link;
 };

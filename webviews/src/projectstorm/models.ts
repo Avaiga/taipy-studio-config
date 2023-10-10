@@ -45,7 +45,7 @@ export class TaipyPortModel extends DefaultPortModel {
       return false;
     }
     // child type
-    if (getChildTypes(this.getNode()?.getType()).has(port.getNode()?.getType())) {
+    if (!getChildTypes(this.getNode()?.getType()).has(port.getNode()?.getType())) {
       // Task -> DataNode Link
       if (port.getNode().getType() !== Task || this.getNode().getType() !== DataNode) {
         return false;
