@@ -432,11 +432,11 @@
   "devDependencies": {
     "@types/glob": "^8.0.0",
     "@types/mocha": "^10.0.0",
-    "@types/node": "^18.11.17",
+    "@types/node": "^20.8.10",
     "@types/vscode": "^1.73.1",
     "@typescript-eslint/eslint-plugin": "^6.1.0",
     "@typescript-eslint/parser": "^6.1.0",
-    "@vscode/l10n-dev": "^0.0.29",
+    "@vscode/l10n-dev": "^0.0.30",
     "@vscode/test-electron": "^2.1.2",
     "@vscode/vsce": "^2.16.0",
     "concurrently": "^8.0.1",
@@ -453,7 +453,7 @@
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5",
-    "@vscode/codicons": "^0.0.33",
+    "@vscode/codicons": "^0.0.35",
     "ajv": "^8.11.0"
   }
 }

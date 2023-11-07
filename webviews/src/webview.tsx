@@ -15,11 +15,11 @@ import { useEffect, lazy, useState, Suspense } from "react";
 import * as l10n from "@vscode/l10n";
 
 import { ViewMessage } from "../../shared/messages";
-import { CONFIG_EDITOR_ID, ConfigEditorProps, DATA_NODE_DETAILS_ID, DataNodeDetailsProps, NO_DETAILS_ID, NoDetailsProps } from "../../shared/views";
+import { CONFIG_EDITOR_ID, ConfigEditorProps, ENTITY_DETAILS_ID, EntityDetailsProps, NO_DETAILS_ID, NoDetailsProps } from "../../shared/views";
 import { postRefreshMessage } from "./utils/messaging";
 
 const NoDetails = lazy(() => import(/* webpackChunkName: "NoDetails" */ "./components/NoDetails"));
-const DataNodeDetails = lazy(() => import(/* webpackChunkName: "DataNodeDetails" */ "./components/DataNodeDetails"));
+const EntityDetails = lazy(() => import(/* webpackChunkName: "EntityDetails" */ "./components/EntityDetails"));
 const Editor = lazy(() => import(/* webpackChunkName: "Editor" */ "./components/Editor"));
 
 const Loading = () => <div>Loading...</div>;
@@ -50,10 +50,10 @@ const WebView = () => {
             <NoDetails {...(message.props as NoDetailsProps)} />
           </Suspense>
         );
-      case DATA_NODE_DETAILS_ID:
+      case ENTITY_DETAILS_ID:
         return (
           <Suspense fallback={<Loading />}>
-            <DataNodeDetails {...(message.props as DataNodeDetailsProps)} />
+            <EntityDetails {...(message.props as EntityDetailsProps)} />
           </Suspense>
         );
       case CONFIG_EDITOR_ID:
