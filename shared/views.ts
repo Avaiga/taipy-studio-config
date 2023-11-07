@@ -18,8 +18,8 @@ export interface NoDetailsProps {
   message: string;
 }
 
-export const DATA_NODE_DETAILS_ID = "DataNodeDetails";
-export interface DataNodeDetailsProps {
+export const ENTITY_DETAILS_ID = "EntityDetails";
+export interface EntityDetailsProps {
   nodeType: string;
   nodeName: string;
   node: Record<string, string | string[]>;

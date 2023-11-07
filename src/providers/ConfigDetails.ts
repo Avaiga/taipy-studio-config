@@ -37,12 +37,12 @@ import {
 
 import { getCspScriptSrc, getDefaultConfig, getNonce, getPositionFragment, joinPaths } from "../utils/utils";
 import {
-  DATA_NODE_DETAILS_ID,
+  ENTITY_DETAILS_ID,
   NO_DETAILS_ID,
   webviewsLibraryDir,
   webviewsLibraryName,
   containerId,
-  DataNodeDetailsProps,
+  EntityDetailsProps,
   NoDetailsProps,
   WebDiag,
 } from "../../shared/views";
@@ -109,7 +109,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
     const orderedProps = allProps ? props : props.filter((prop) => prop in node);
     this.getNodeDiagnosticsAndLinks(node, name).then((diags) => {
       this._view?.webview.postMessage({
-        viewId: DATA_NODE_DETAILS_ID,
+        viewId: ENTITY_DETAILS_ID,
         props: {
           nodeType,
           nodeName: name,
@@ -117,7 +117,7 @@ export class ConfigDetailsView implements WebviewViewProvider {
           diagnostics: Object.keys(diags).length ? diags : undefined,
           orderedProps,
           allProps,
-        } as DataNodeDetailsProps,
+        } as EntityDetailsProps,
       } as ViewMessage);
     });
   }
@@ -158,12 +158,11 @@ export class ConfigDetailsView implements WebviewViewProvider {
       }
       const parentSymbol = getSymbol(symbols, this.nodeType, this.nodeName);
       if (parentSymbol) {
-        const pSymbols = [parentSymbol];
         return Object.keys(node).reduce((obj, key) => {
           if (key.startsWith("_")) {
             return obj;
           }
-          return this.addDiagnostic(getSymbol(pSymbols, key), diags, links, key, obj);
+          return this.addDiagnostic(getSymbol(parentSymbol.children, key), diags, links, key, obj);
         }, {} as Record<string, WebDiag>);
       }
     }
@@ -223,11 +222,11 @@ export class ConfigDetailsView implements WebviewViewProvider {
       const nameSymbol = getSymbol(symbols, this.nodeType, this.nodeName);
       const node = getNodeFromSymbol(textDocument, nameSymbol);
       this._view?.webview.postMessage({
-        viewId: DATA_NODE_DETAILS_ID,
-        props: { nodeType: this.nodeType, nodeName: this.nodeName, node: node } as DataNodeDetailsProps,
+        viewId: ENTITY_DETAILS_ID,
+        props: { nodeType: this.nodeType, nodeName: this.nodeName, node: node } as EntityDetailsProps,
       } as ViewMessage);
     }
-  }
+}
 
   private async deleteProperty(
     nodeType: string,

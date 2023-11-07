@@ -16,7 +16,7 @@ import * as l10n from "@vscode/l10n";
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react";
 
 import { postDeleteProperty, postEditNodeName, postEditProperty } from "../utils/messaging";
-import { DataNodeDetailsProps, WebDiag } from "../../../shared/views";
+import { EntityDetailsProps as EntityDetailsProps, WebDiag } from "../../../shared/views";
 
 const getAsString = (val: string | string[]) =>
   Array.isArray(val) ? (val as string[]).join(", ") : typeof val === "string" ? val : JSON.stringify(val);
@@ -41,7 +41,7 @@ const getDiagStyle = (diag: WebDiag) =>
       }
     : { textDecorationLine: "underline" }) as React.CSSProperties;
 
-const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, allProps }: DataNodeDetailsProps) => {
+const EntityPanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, allProps }: EntityDetailsProps) => {
   const extras = useMemo(
     () =>
       Object.entries(node).reduce((o, [k, v]) => {
@@ -76,7 +76,7 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, al
   );
 
   return (
-    <div className="taipy-datanode-panel">
+    <div className="taipy-entity-panel">
       <div className="property-grid">
         <h2>{nodeType}</h2>
         <h2 className="edit-value" onClick={editNodeName}>
@@ -127,4 +127,4 @@ const DataNodePanel = ({ nodeType, nodeName, node, diagnostics, orderedProps, al
   );
 };
 
-export default DataNodePanel;
+export default EntityPanel;
